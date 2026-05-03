@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0e1a">
+<title>EscanerGuías</title>
+<!-- ZXing para lectura de códigos -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.19.2/umd/index.min.js"></script>
+<!-- SheetJS para exportar Excel -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0a0e1a; --surface:#111827; --surface2:#1c2536;
+  --accent:#00e5ff; --accent2:#ff6b35; --success:#00d97e;
+  --danger:#ff4757; --warn:#ffd32a; --text:#e8eaf6; --text2:#8892a4;
+  --border:rgba(0,229,255,0.15); --radius:12px; --font:'Courier New',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
+
+/* ─── HEADER ─── */
+header{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 14px;
+  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;
+  box-shadow:0 2px 20px rgba(0,0,0,.5)}
+.logo{font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+.logo span{color:var(--accent2)}
+.header-right{display:flex;align-items:center;gap:8px}
+.header-count{background:var(--accent);color:var(--bg);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;min-width:60px;text-align:center}
+.db-status{display:flex;align-items:center;gap:4px;font-size:0.6rem;padding:3px 8px;border-radius:20px;transition:all .3s}
+.db-status.ok{background:rgba(0,217,126,.15);color:var(--success);border:1px solid var(--success)}
+.db-status.err{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger);animation:pulse-dot 1s infinite}
+.db-status.saving{background:rgba(255,211,42,.15);color:var(--warn);border:1px solid var(--warn)}
+@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* ─── TABS ─── */
+.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:49px;z-index:99}
+.tab{flex:1;padding:10px 4px;text-align:center;font-size:0.68rem;letter-spacing:.5px;
+  text-transform:uppercase;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;user-select:none}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,229,255,.03)}
+.panel{display:none;padding:12px}.panel.active{display:block}
+
+/* ─── SCANNER ─── */
+.cam-wrapper{position:relative;background:#000;border-radius:var(--radius);overflow:hidden;
+  border:1px solid var(--border);aspect-ratio:4/3;max-height:58vw;margin-top:10px;
+  box-shadow:0 0 30px rgba(0,229,255,.1)}
+#video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.scan-frame{width:70%;aspect-ratio:3/1.2;border:2px solid var(--accent);border-radius:6px;
+  box-shadow:0 0 0 9999px rgba(0,0,0,.4);position:relative}
+.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  box-shadow:0 0 8px var(--accent);animation:scan-move 1.2s ease-in-out infinite}
+@keyframes scan-move{0%{top:5%}100%{top:95%}}
+.scan-frame::before,.scan-frame::after,.scan-frame .c1,.scan-frame .c2{content:'';position:absolute;width:18px;height:18px}
+.scan-frame::before{top:-2px;left:-2px;border-top:3px solid var(--accent2);border-left:3px solid var(--accent2)}
+.scan-frame::after{top:-2px;right:-2px;border-top:3px solid var(--accent2);border-right:3px solid var(--accent2)}
+.scan-frame .c1{bottom:-2px;left:-2px;border-bottom:3px solid var(--accent2);border-left:3px solid var(--accent2)}
+.scan-frame .c2{bottom:-2px;right:-2px;border-bottom:3px solid var(--accent2);border-right:3px solid var(--accent2)}
+.cam-info{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));
+  padding:6px 10px;font-size:0.6rem;color:rgba(255,255,255,.6);text-align:center}
+
+/* ─── BUTTONS ─── */
+.cam-controls{display:flex;gap:8px;margin-top:10px}
+.btn{flex:1;padding:11px 8px;border:none;border-radius:var(--radius);font-family:var(--font);
+  font-size:0.72rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}
+.btn:active{transform:scale(.94);opacity:.85}
+.btn-primary{background:var(--accent);color:var(--bg)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-success{background:var(--success);color:var(--bg)}
+.btn-warn{background:var(--warn);color:var(--bg)}
+
+/* ─── FLASH ─── */
+.flash-result{margin-top:10px;padding:12px 14px;border-radius:var(--radius);font-size:0.88rem;
+  letter-spacing:1px;text-align:center;display:none;font-weight:700}
+.flash-result.show{display:block;animation:flashIn .2s ease}
+.flash-result.ok{background:rgba(0,217,126,.15);border:1px solid var(--success);color:var(--success)}
+.flash-result.dup{background:rgba(255,71,87,.15);border:1px solid var(--danger);color:var(--danger)}
+@keyframes flashIn{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
+
+/* ─── CHOFER ROW ─── */
+.chofer-row{display:flex;gap:8px;align-items:center;margin-top:4px}
+.label-sm{font-size:0.65rem;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
+.input-text{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  color:var(--text);font-family:var(--font);font-size:0.85rem;padding:10px 12px;outline:none;width:100%;
+  -webkit-appearance:none;appearance:none}
+.input-text:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
+select.input-text{cursor:pointer}
+
+/* ─── STATS ─── */
+.manual-row{display:flex;gap:8px;margin-top:10px}
+.stats-row{display:flex;gap:8px;margin-top:10px}
+.stat-card{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center}
+.stat-num{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
+.stat-label{font-size:0.58rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+
+/* ─── TABLE ─── */
+.data-controls{display:flex;gap:8px;margin-bottom:10px}
+.search-input{flex:1}
+.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);max-height:calc(100vh - 220px);overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:0.72rem;min-width:400px}
+thead{background:var(--surface2);position:sticky;top:0;z-index:10}
+th{padding:10px 8px;text-align:left;color:var(--accent);font-size:0.62rem;letter-spacing:1.5px;
+  text-transform:uppercase;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--accent2)}
+td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text);
+  max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(0,229,255,.03)}
+.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.58rem;font-weight:700;letter-spacing:1px}
+.badge-qr{background:rgba(0,229,255,.15);color:var(--accent)}
+.badge-bar{background:rgba(255,107,53,.15);color:var(--accent2)}
+.badge-man{background:rgba(255,211,42,.15);color:var(--warn)}
+.del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:3px 8px;border-radius:6px;transition:background .15s}
+.del-btn:active{background:rgba(255,71,87,.15)}
+.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
+.empty-state .big{font-size:2.5rem;margin-bottom:8px}
+
+/* ─── EXPORT ─── */
+.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.export-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s;user-select:none}
+.export-card:active{border-color:var(--accent);background:rgba(0,229,255,.06);transform:scale(.96)}
+.export-icon{font-size:2rem;margin-bottom:6px}
+.export-name{font-size:0.75rem;font-weight:700;color:var(--text);letter-spacing:1px}
+.export-desc{font-size:0.6rem;color:var(--text2);margin-top:3px}
+
+/* ─── SETTINGS ─── */
+.settings-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.settings-title{font-size:0.65rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.setting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
+.setting-row:last-child{margin-bottom:0}
+.setting-label{font-size:0.78rem;color:var(--text)}
+.setting-hint{font-size:0.62rem;color:var(--text2);margin-top:2px}
+.toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+.toggle input{opacity:0;width:0;height:0;position:absolute}
+.toggle-slider{position:absolute;inset:0;background:#333;border-radius:26px;cursor:pointer;transition:.3s}
+.toggle-slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.toggle-slider{background:var(--accent)}
+.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
+.col-list,.chofer-list{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto}
+.col-item{display:flex;align-items:center;gap:8px}
+.col-item .input-text{flex:1;padding:7px 10px;font-size:0.78rem}
+.alert-box{border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;font-size:0.75rem;line-height:1.7}
+.alert-warn{background:rgba(255,211,42,.08);border:1px solid var(--warn);color:var(--warn)}
+.alert-success{background:rgba(0,217,126,.08);border:1px solid var(--success);color:var(--success)}
+.alert-info{background:rgba(0,229,255,.08);border:1px solid var(--accent);color:var(--accent)}
+.alert-danger{background:rgba(255,71,87,.08);border:1px solid var(--danger);color:var(--danger)}
+
+/* ─── DB ERROR BANNER ─── */
+#db-error-banner{display:none;background:var(--danger);color:#fff;padding:10px 14px;
+  font-size:0.75rem;text-align:center;line-height:1.6;position:sticky;top:49px;z-index:98}
+
+/* ─── TOAST ─── */
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  padding:10px 20px;border-radius:30px;font-size:0.78rem;letter-spacing:1px;z-index:9999;
+  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);white-space:nowrap;pointer-events:none;
+  box-shadow:0 4px 20px rgba(0,0,0,.5)}
+#toast.show{transform:translateX(-50%) translateY(0)}
+
+/* ─── FAB ─── */
+#fab-torch{position:fixed;bottom:16px;right:16px;width:52px;height:52px;border-radius:50%;
+  background:var(--surface2);border:2px solid var(--border);font-size:1.4rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.5);
+  transition:all .2s;z-index:200;-webkit-tap-highlight-color:transparent}
+#fab-torch.on{background:var(--warn);border-color:var(--warn);box-shadow:0 0 20px rgba(255,211,42,.5)}
+
+/* ─── PROGRESS ─── */
+.backup-bar{height:4px;background:var(--surface2);border-radius:4px;margin-top:8px;overflow:hidden}
+.backup-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
+
+/* ─── CHOFER BADGE ─── */
+.chofer-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(255,107,53,.1);
+  border:1px solid rgba(255,107,53,.3);border-radius:20px;padding:2px 10px;font-size:0.65rem;color:var(--accent2)}
+
+@media(min-width:600px){
+  .cam-wrapper{max-height:280px}
+  body{max-width:640px;margin:0 auto}
+}
+</style>
+</head>
+<body>
+
+<!-- BANNER DE ERROR DE BASE DE DATOS -->
+<div id="db-error-banner">
+  ⚠️ <strong>ERROR: IndexedDB no disponible.</strong> Los datos se guardan solo en RAM y se perderán al cerrar.
+  Verifica que no estés en modo incógnito y recarga la página.
+</div>
+
+<header>
+  <div class="logo">Escanea<span>Guías</span></div>
+  <div class="header-right">
+    <div class="db-status ok" id="db-status" title="Estado base de datos">💾 DB OK</div>
+    <div class="header-count" id="header-count">0 guías</div>
+  </div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-tab="scanner">📷 Scan</div>
+  <div class="tab" data-tab="data">📋 Lista</div>
+  <div class="tab" data-tab="export">💾 Export</div>
+  <div class="tab" data-tab="settings">⚙️ Config</div>
+</div>
+
+<!-- ══════════════════════════════════
+     SCANNER
+══════════════════════════════════ -->
+<div id="scanner-panel" class="panel active">
+  <div class="chofer-row">
+    <span class="label-sm">Chofer:</span>
+    <select class="input-text" id="chofer-select" style="flex:1"></select>
+  </div>
+
+  <div class="cam-wrapper">
+    <video id="video" autoplay playsinline muted></video>
+    <div class="scan-overlay">
+      <div class="scan-frame">
+        <div class="scan-line"></div>
+        <div class="c1"></div><div class="c2"></div>
+      </div>
+    </div>
+    <div class="cam-info" id="cam-info">Cámara apagada</div>
+  </div>
+
+  <div class="cam-controls">
+    <button class="btn btn-primary" id="btn-start" onclick="startCamera()">▶ INICIAR</button>
+    <button class="btn btn-secondary" onclick="flipCamera()" title="Cambiar cámara">🔄</button>
+    <button class="btn btn-secondary" id="btn-pause" onclick="togglePause()" title="Pausar">⏸</button>
+  </div>
+
+  <div id="flash-result" class="flash-result"></div>
+
+  <div class="manual-row">
+    <input class="input-text" id="manual-input" type="text"
+      placeholder="Ingresar guía manual..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <button class="btn btn-secondary" style="flex:0 0 auto;padding:10px 16px" onclick="addManual()">＋</button>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-hoy" style="color:var(--success)">0</div><div class="stat-label">Hoy</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-dups" style="color:var(--danger)">0</div><div class="stat-label">Dups</div></div>
+    <div class="stat-card"><div class="stat-num" id="stat-choferes" style="color:var(--accent2)">0</div><div class="stat-label">Choferes</div></div>
+  </div>
+
+  <!-- Barra de progreso autobackup -->
+  <div id="backup-progress-wrap" style="display:none;margin-top:10px">
+    <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text2);margin-bottom:3px">
+      <span>Progreso hasta backup automático</span>
+      <span id="backup-progress-txt">0 / 200</span>
+    </div>
+    <div class="backup-bar"><div class="backup-bar-fill" id="backup-bar-fill" style="width:0%"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     LISTA
+══════════════════════════════════ -->
+<div id="data-panel" class="panel">
+  <div class="data-controls">
+    <input class="input-text search-input" id="search-input" type="text"
+      placeholder="Buscar guía, chofer, fecha..." oninput="renderTable()">
+    <button class="btn btn-danger" style="flex:0 0 auto;padding:10px 14px" onclick="clearAll()" title="Borrar todo">🗑</button>
+  </div>
+  <div id="filter-by-chofer" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+  <div class="table-wrap">
+    <table><thead id="table-head"></thead><tbody id="table-body"></tbody></table>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     EXPORT
+══════════════════════════════════ -->
+<div id="export-panel" class="panel">
+  <div class="alert-box alert-info">📦 <strong id="export-count">0</strong> registros listos para exportar</div>
+  <div class="export-grid">
+    <div class="export-card" onclick="exportExcel()"><div class="export-icon">📊</div><div class="export-name">Excel</div><div class="export-desc">.xlsx · hoja por chofer</div></div>
+    <div class="export-card" onclick="exportCSV()"><div class="export-icon">📄</div><div class="export-name">CSV</div><div class="export-desc">Compatible universal</div></div>
+    <div class="export-card" onclick="exportJSON()"><div class="export-icon">{ }</div><div class="export-name">JSON</div><div class="export-desc">Datos completos</div></div>
+    <div class="export-card" onclick="exportTXT()"><div class="export-icon">📝</div><div class="export-name">TXT</div><div class="export-desc">Una guía por línea</div></div>
+    <div class="export-card" onclick="exportHTML()"><div class="export-icon">🌐</div><div class="export-name">HTML</div><div class="export-desc">Reporte imprimible</div></div>
+    <div class="export-card" onclick="copyClipboard()"><div class="export-icon">📋</div><div class="export-name">Copiar</div><div class="export-desc">Al portapapeles</div></div>
+  </div>
+  <div class="settings-section">
+    <div class="settings-title">📊 Resumen por Chofer</div>
+    <div id="chofer-summary"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════
+     SETTINGS
+══════════════════════════════════ -->
+<div id="settings-panel" class="panel">
+
+  <div class="settings-section">
+    <div class="settings-title">🔒 Estado de la Base de Datos</div>
+    <div id="security-status"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button class="btn btn-success" style="flex:1;font-size:0.65rem" onclick="exportBackupJSON()">⬇ Backup JSON</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:0.65rem" onclick="document.getElementById('restore-file').click()">⬆ Restaurar</button>
+      <input type="file" id="restore-file" accept=".json" style="display:none" onchange="importBackup(event)">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-title">⚙️ Comportamiento del Escáner</div>
+    <div class="setting-row">
+      <div><div class="setting-label">Evitar duplicados</div><div class="setting-hint">No agrega si la guía ya existe</div></div>
+      <label class="toggle"><input type="checkbox" id="set-dedup" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Beep al escanear</div></div>
+      <label class="toggle"><input type="checkbox" id="set-beep" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Vibrar al escanear</div></div>
+      <label class="toggle"><input type="checkbox" id="set-vibrate" checked><span class="toggle-slider"></span></label>
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Pausa entre escaneos (ms)</div><div class="setting-hint">Evita leer el mismo código dos veces</div></div>
+      <input type="number" class="input-text" id="set-pause-ms" value="1200"
+        style="width:80px;flex:0 0 auto;text-align:center" min="300" max="5000">
+    </div>
+    <div class="setting-row">
+      <div><div class="setting-label">Auto-backup cada N guías</div><div class="setting-hint">0 = desactivado</div></div>
+      <input type="number" class="input-text" id="set-autobackup" value="200"
+        style="width:80px;flex:0 0 auto;text-align:center" min="0">
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-title">👤 Choferes (<span id="chofer-count">0</span>)</div>
+    <div class="alert-box alert-info" style="font-size:0.7rem;margin-bottom:10px">
+      💡 Puedes agregar <strong>todos los choferes que necesites</strong>. No hay límite.
+    </div>
+    <div class="chofer-list" id="chofer-list"></div>
+    <div class="manual-row" style="margin-top:10px">
+      <input class="input-text" id="new-chofer-input" type="text" placeholder="Nombre del chofer...">
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addChofer()">＋</button>
+    </div>
+    <div style="margin-top:12px">
+      <div class="label-sm" style="margin-bottom:6px">Agregar lista completa (uno por línea):</div>
+      <textarea class="input-text" id="bulk-choferes" rows="4"
+        placeholder="Juan García&#10;Pedro López&#10;Carlos Ruiz&#10;..." style="resize:vertical;font-size:0.75rem"></textarea>
+      <button class="btn btn-secondary" style="width:100%;margin-top:6px;font-size:0.7rem" onclick="bulkAddChoferes()">＋ Agregar todos</button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-title">📋 Columnas Extra</div>
+    <div class="col-list" id="col-list"></div>
+    <div class="manual-row" style="margin-top:10px">
+      <input class="input-text" id="new-col-input" type="text" placeholder="Ej: ruta, zona, estatus...">
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addColumn()">＋</button>
+    </div>
+  </div>
+
+  <div class="settings-section">
+    <div class="settings-title">🗑 Zona de Peligro</div>
+    <div class="alert-box alert-danger" style="font-size:0.7rem;margin-bottom:10px">
+      ⚠️ Estas acciones son <strong>irreversibles</strong>. Descarga un backup primero.
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll()">Borrar registros</button>
+      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearStorageAll()">Borrar TODO</button>
+    </div>
+  </div>
+</div>
+
+<button id="fab-torch" onclick="toggleTorch()" title="Linterna">🔦</button>
+<div id="toast"></div>
+
+<script>
+/* ═══════════════════════════════════════════════
+   INDEXEDDB — Con fallback robusto y detección de errores
+═══════════════════════════════════════════════ */
+const DB_NAME = 'escanerguias_v3';
+const DB_VER  = 1;
+let db = null;
+let dbAvailable = false; // ← Si es false, avisamos al usuario
+
+function openDB() {
+  return new Promise((res, rej) => {
+    if (!window.indexedDB) { rej(new Error('IndexedDB no soportado')); return; }
+    const req = indexedDB.open(DB_NAME, DB_VER);
+    req.onupgradeneeded = e => {
+      const d = e.target.result;
+      if (!d.objectStoreNames.contains('records')) {
+        const s = d.createObjectStore('records', { keyPath: 'id' });
+        s.createIndex('guia',      'guia',      { unique: false });
+        s.createIndex('chofer',    'chofer',    { unique: false });
+        s.createIndex('timestamp', 'timestamp', { unique: false });
+      }
+      if (!d.objectStoreNames.contains('config')) {
+        d.createObjectStore('config', { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = e => { db = e.target.result; dbAvailable = true; res(); };
+    req.onerror   = e => rej(e.target.error);
+    req.onblocked = () => rej(new Error('DB bloqueada por otra pestaña'));
+    // Timeout de seguridad: si no abre en 5s, reportar
+    setTimeout(() => { if (!db) rej(new Error('Timeout al abrir DB')); }, 5000);
+  });
+}
+
+function idbPut(store, val) {
+  if (!dbAvailable) return Promise.resolve(); // Continúa aunque no hay DB
+  return new Promise((res, rej) => {
+    try {
+      const t = db.transaction(store, 'readwrite');
+      t.objectStore(store).put(val);
+      t.oncomplete = res;
+      t.onerror = e => rej(e.target.error);
+    } catch(e) { rej(e); }
+  });
+}
+function idbDel(store, key) {
+  if (!dbAvailable) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, 'readwrite');
+    t.objectStore(store).delete(key);
+    t.oncomplete = res; t.onerror = e => rej(e.target.error);
+  });
+}
+function idbGetAll(store) {
+  if (!dbAvailable) return Promise.resolve([]);
+  return new Promise((res, rej) => {
+    const req = db.transaction(store, 'readonly').objectStore(store).getAll();
+    req.onsuccess = e => res(e.target.result);
+    req.onerror   = e => rej(e.target.error);
+  });
+}
+function idbClear(store) {
+  if (!dbAvailable) return Promise.resolve();
+  return new Promise((res, rej) => {
+    const t = db.transaction(store, 'readwrite');
+    t.objectStore(store).clear();
+    t.oncomplete = res; t.onerror = e => rej(e.target.error);
+  });
+}
+async function cfgGet(key, def) {
+  try {
+    const all = await idbGetAll('config');
+    const f = all.find(c => c.key === key);
+    return f ? f.value : def;
+  } catch { return def; }
+}
+const cfgSet = (key, value) => idbPut('config', { key, value });
+
+/* ═══════════════════════════════════════════════
+   ESTADO
+═══════════════════════════════════════════════ */
+let records   = [];
+let choferes  = [];
+let extraCols = [];
+let dupCount  = 0;
+let stream    = null;
+let torchOn   = false;
+let paused    = false;
+let facingMode    = 'environment';
+let sortCol   = 'timestamp';
+let sortAsc   = false;
+let scanning  = false;
+let lastCode  = '';
+let lastTime  = 0;
+let choferFilter = null;
+
+// Set de guías para lookup O(1) en lugar de find() O(n) — crítico con 1000+ registros
+let guidSet = new Set();
+
+const today  = () => new Date().toLocaleDateString('es-MX');
+const nowStr = () => new Date().toLocaleString('es-MX');
+
+/* ═══════════════════════════════════════════════
+   DB STATUS INDICATOR
+═══════════════════════════════════════════════ */
+function setDbStatus(state, msg) {
+  const el = document.getElementById('db-status');
+  el.className = 'db-status ' + state;
+  el.textContent = msg;
+}
+
+/* ═══════════════════════════════════════════════
+   GUARDAR
+═══════════════════════════════════════════════ */
+async function persistRecord(rec) {
+  setDbStatus('saving', '💾 ...');
+  try {
+    await idbPut('records', rec);
+    setDbStatus('ok', '💾 OK');
+  } catch(e) {
+    setDbStatus('err', '❌ ERR');
+    toast('⚠ Error guardando: ' + e.message);
+    console.error('persistRecord error:', e);
+  }
+}
+
+async function persistConfig() {
+  try {
+    await cfgSet('choferes',  choferes);
+    await cfgSet('extraCols', extraCols);
+    await cfgSet('dupCount',  dupCount);
+  } catch(e) { console.error('persistConfig:', e); }
+}
+
+/* ═══════════════════════════════════════════════
+   TABS
+═══════════════════════════════════════════════ */
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById(t.dataset.tab + '-panel').classList.add('active');
+    if (t.dataset.tab === 'data')     renderTable();
+    if (t.dataset.tab === 'export')   updateExportPanel();
+    if (t.dataset.tab === 'settings') renderSettings();
+  });
+});
+
+/* ═══════════════════════════════════════════════
+   CÁMARA
+═══════════════════════════════════════════════ */
+async function startCamera() {
+  try {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode,
+        width:  { ideal: 1280 },
+        height: { ideal: 720 },
+        frameRate: { ideal: 30, max: 60 }
+      }
+    });
+    const v = document.getElementById('video');
+    v.srcObject = stream;
+    await v.play();
+
+    const track = stream.getVideoTracks()[0];
+    const s     = track.getSettings();
+    document.getElementById('cam-info').textContent =
+      `${s.width || '?'}×${s.height || '?'} · ${facingMode === 'environment' ? 'Cámara trasera' : 'Cámara frontal'}`;
+
+    const btn = document.getElementById('btn-start');
+    btn.textContent = '🔴 EN VIVO';
+    btn.classList.replace('btn-primary', 'btn-danger');
+    btn.onclick = stopCamera;
+
+    startDecoding(v);
+    toast('Cámara iniciada ✓');
+  } catch(e) {
+    toast('Error cámara: ' + e.message);
+    console.error(e);
+  }
+}
+
+function stopCamera() {
+  scanning = false;
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  const btn = document.getElementById('btn-start');
+  btn.textContent = '▶ INICIAR';
+  btn.classList.replace('btn-danger', 'btn-primary');
+  btn.onclick = startCamera;
+  document.getElementById('cam-info').textContent = 'Cámara apagada';
+}
+
+function flipCamera() {
+  facingMode = facingMode === 'environment' ? 'user' : 'environment';
+  if (stream) startCamera(); else toast('Inicia la cámara primero');
+}
+
+function togglePause() {
+  paused = !paused;
+  document.getElementById('btn-pause').textContent = paused ? '▶' : '⏸';
+  toast(paused ? '⏸ Pausado' : '▶ Reanudado');
+}
+
+/* ═══════════════════════════════════════════════
+   ZXING LOOP — Optimizado para velocidad
+   Usa setTimeout en lugar de rAF para liberar
+   el hilo principal entre frames
+═══════════════════════════════════════════════ */
+function startDecoding(video) {
+  scanning = true;
+
+  const hints = new Map();
+  const F = ZXing.BarcodeFormat;
+  // Formatos más comunes primero para mayor velocidad
+  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+    F.CODE_128, F.QR_CODE, F.CODE_39, F.EAN_13, F.EAN_8,
+    F.UPC_A, F.UPC_E, F.DATA_MATRIX, F.PDF_417, F.ITF,
+    F.CODABAR, F.CODE_93, F.AZTEC
+  ]);
+  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
+
+  const reader = new ZXing.MultiFormatReader();
+  reader.setHints(hints);
+
+  const canvas = document.createElement('canvas');
+  const ctx    = canvas.getContext('2d', { willReadFrequently: true }); // ← Optimización Chrome
+
+  // Tiempo mínimo entre frames para no saturar CPU en móviles lentos
+  const FRAME_INTERVAL = 80; // ~12 fps es suficiente para escaneo
+  let lastFrameTime = 0;
+
+  const loop = () => {
+    if (!scanning) return;
+
+    const now = performance.now();
+    if (now - lastFrameTime < FRAME_INTERVAL) {
+      requestAnimationFrame(loop);
+      return;
+    }
+    lastFrameTime = now;
+
+    if (paused || video.paused || video.readyState < 3) {
+      requestAnimationFrame(loop);
+      return;
+    }
+
+    // Reducir resolución del canvas para acelerar decodificación
+    const scale = Math.min(1, 640 / video.videoWidth);
+    canvas.width  = video.videoWidth  * scale;
+    canvas.height = video.videoHeight * scale;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    try {
+      const id  = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const lum = new ZXing.RGBLuminanceSource(id.data, canvas.width, canvas.height);
+      const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
+      const res = reader.decode(bmp);
+
+      if (res) {
+        const code  = res.getText();
+        const tsNow = Date.now();
+        const ms    = parseInt(document.getElementById('set-pause-ms').value) || 1200;
+
+        if (code !== lastCode || tsNow - lastTime > ms) {
+          lastCode = code;
+          lastTime = tsNow;
+          const fmt = ZXing.BarcodeFormat[res.getBarcodeFormat()] || 'BARCODE';
+          addRecord(code, fmt);
+        }
+      }
+    } catch(e) {
+      // NotFoundException es normal cuando no hay código — silenciar
+    }
+
+    requestAnimationFrame(loop);
+  };
+
+  requestAnimationFrame(loop);
+}
+
+/* ═══════════════════════════════════════════════
+   AGREGAR REGISTRO
+═══════════════════════════════════════════════ */
+async function addRecord(code, type) {
+  // Deduplicación con Set → O(1) aunque sean 10,000 registros
+  if (document.getElementById('set-dedup').checked && guidSet.has(code)) {
+    dupCount++;
+    showFlash('⚠ DUPLICADO: ' + code, 'dup');
+    updateStats();
+    cfgSet('dupCount', dupCount);
+    return;
+  }
+
+  const chofer = document.getElementById('chofer-select').value;
+  const rec = {
+    id:        Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    guia:      code,
+    tipo:      type,
+    chofer:    chofer,
+    fecha:     today(),
+    hora:      new Date().toLocaleTimeString('es-MX'),
+    timestamp: Date.now()
+  };
+  extraCols.forEach(c => { rec[c] = ''; });
+
+  // Actualizar estructura de datos
+  records.unshift(rec);
+  guidSet.add(code);
+
+  // Guardar en IndexedDB INMEDIATAMENTE
+  await persistRecord(rec);
+
+  // Feedback sensorial
+  if (document.getElementById('set-beep').checked)    beep();
+  if (document.getElementById('set-vibrate').checked && navigator.vibrate) navigator.vibrate(55);
+
+  showFlash('✓ ' + code, 'ok');
+  updateStats();
+
+  // Auto-backup
+  const ab = parseInt(document.getElementById('set-autobackup').value) || 0;
+  if (ab > 0) {
+    if (records.length % ab === 0) exportBackupJSON(true);
+    // Actualizar barra de progreso
+    const progress = (records.length % ab) / ab;
+    const fill = document.getElementById('backup-bar-fill');
+    const txt  = document.getElementById('backup-progress-txt');
+    if (fill) {
+      fill.style.width = (progress * 100) + '%';
+      txt.textContent  = (records.length % ab) + ' / ' + ab;
+    }
+  }
+}
+
+function addManual() {
+  const inp = document.getElementById('manual-input');
+  const v   = inp.value.trim();
+  if (!v) return;
+  addRecord(v, 'MANUAL');
+  inp.value = '';
+}
+
+document.getElementById('manual-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addManual();
+});
+
+/* ═══════════════════════════════════════════════
+   UI HELPERS
+═══════════════════════════════════════════════ */
+function showFlash(msg, cls) {
+  const el = document.getElementById('flash-result');
+  el.textContent = msg;
+  el.className   = 'flash-result show ' + cls;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+function updateStats() {
+  const t   = today();
+  const hoy = records.filter(r => r.fecha === t).length;
+  const chs = new Set(records.filter(r => r.chofer).map(r => r.chofer));
+
+  document.getElementById('stat-total').textContent    = records.length;
+  document.getElementById('stat-hoy').textContent      = hoy;
+  document.getElementById('stat-dups').textContent     = dupCount;
+  document.getElementById('stat-choferes').textContent = chs.size;
+  document.getElementById('header-count').textContent  = records.length + ' guías';
+
+  // Mostrar/ocultar barra de backup
+  const ab = parseInt(document.getElementById('set-autobackup').value) || 0;
+  document.getElementById('backup-progress-wrap').style.display = ab > 0 ? 'block' : 'none';
+}
+
+/* ═══════════════════════════════════════════════
+   TABLA
+═══════════════════════════════════════════════ */
+function renderTable() {
+  // Filtros de búsqueda
+  const q = (document.getElementById('search-input').value || '').toLowerCase();
+  let rows = records.filter(r => {
+    if (choferFilter && r.chofer !== choferFilter) return false;
+    if (!q) return true;
+    return r.guia.toLowerCase().includes(q) ||
+           (r.chofer || '').toLowerCase().includes(q) ||
+           (r.fecha  || '').includes(q);
+  });
+
+  // Ordenar
+  rows.sort((a, b) => {
+    let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
+    return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
+  });
+
+  // Cabeceras
+  const base = ['guia', 'tipo', 'chofer', 'fecha', 'hora'];
+  const all  = [...base, ...extraCols];
+  document.getElementById('table-head').innerHTML = `<tr>
+    ${all.map(c => `<th onclick="sortBy('${c}')">${c.toUpperCase()}${sortCol === c ? (sortAsc ? ' ↑' : ' ↓') : ''}</th>`).join('')}
+    <th></th></tr>`;
+
+  // Renderizar filtros por chofer
+  renderChoferFilters();
+
+  const body = document.getElementById('table-body');
+  if (!rows.length) {
+    body.innerHTML = `<tr><td colspan="${all.length + 1}">
+      <div class="empty-state"><div class="big">📦</div><div>Sin guías todavía</div></div>
+    </td></tr>`;
+    return;
+  }
+
+  // Virtualización simple: mostrar solo los primeros 300 para no bloquear UI
+  const display = rows.slice(0, 300);
+  body.innerHTML = display.map(r => `<tr>
+    ${base.map(c => c === 'tipo'
+      ? `<td><span class="badge ${badgeClass(r.tipo)}">${r.tipo}</span></td>`
+      : `<td title="${escHtml(r[c] || '')}">${r[c] || '—'}</td>`).join('')}
+    ${extraCols.map(c => `<td><input type="text" value="${escAttr(r[c] || '')}"
+      style="background:none;border:none;color:var(--text);font-family:var(--font);font-size:0.72rem;width:100%;min-width:60px"
+      onchange="updateField('${r.id}','${c}',this.value)"></td>`).join('')}
+    <td><button class="del-btn" onclick="deleteRecord('${r.id}')">✕</button></td>
+  </tr>`).join('');
+
+  if (rows.length > 300) {
+    body.innerHTML += `<tr><td colspan="${all.length + 1}" style="text-align:center;padding:10px;color:var(--text2);font-size:0.7rem">
+      ... mostrando 300 de ${rows.length} (usa el buscador para filtrar) ...</td></tr>`;
+  }
+}
+
+function renderChoferFilters() {
+  const chs = [...new Set(records.map(r => r.chofer).filter(Boolean))];
+  const el  = document.getElementById('filter-by-chofer');
+  if (!chs.length) { el.innerHTML = ''; return; }
+  el.innerHTML = `
+    <span class="chofer-badge" style="cursor:pointer;${!choferFilter ? 'border-color:var(--accent);color:var(--accent)' : ''}" onclick="setChoferFilter(null)">Todos</span>
+    ${chs.map(c => `<span class="chofer-badge" style="cursor:pointer;${choferFilter === c ? 'border-color:var(--accent);color:var(--accent)' : ''}" onclick="setChoferFilter('${escAttr(c)}')">${c}</span>`).join('')}`;
+}
+
+function setChoferFilter(c) { choferFilter = c; renderTable(); }
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+function badgeClass(t) {
+  if (!t || t === 'MANUAL') return 'badge-man';
+  if (t.includes('QR') || t.includes('AZTEC') || t.includes('DATA')) return 'badge-qr';
+  return 'badge-bar';
+}
+
+function sortBy(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  renderTable();
+}
+
+async function updateField(id, col, val) {
+  const r = records.find(r => r.id === id);
+  if (r) { r[col] = val; await persistRecord(r); }
+}
+
+async function deleteRecord(id) {
+  const r = records.find(r => r.id === id);
+  if (r) guidSet.delete(r.guia);
+  records = records.filter(r => r.id !== id);
+  await idbDel('records', id);
+  updateStats();
+  renderTable();
+}
+
+async function clearAll() {
+  if (!confirm('¿Borrar todos los registros?\n\nDescarga un backup primero si necesitas los datos.')) return;
+  records  = [];
+  guidSet  = new Set();
+  dupCount = 0;
+  await idbClear('records');
+  await cfgSet('dupCount', 0);
+  updateStats();
+  renderTable();
+  toast('Registros borrados');
+}
+
+/* ═══════════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════════ */
+function renderSettings() {
+  document.getElementById('chofer-count').textContent = choferes.length;
+
+  document.getElementById('chofer-list').innerHTML = choferes.map((c, i) => `
+    <div class="col-item">
+      <input class="input-text" value="${escAttr(c)}"
+        onchange="choferes[${i}]=this.value;syncChoferSelect();persistConfig()">
+      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px" onclick="removeChofer(${i})">✕</button>
+    </div>`).join('');
+
+  document.getElementById('col-list').innerHTML = extraCols.map((c, i) => `
+    <div class="col-item">
+      <input class="input-text" value="${escAttr(c)}" onchange="extraCols[${i}]=this.value;persistConfig()">
+      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px" onclick="removeColumn(${i})">✕</button>
+    </div>`).join('');
+
+  const usedKB = Math.round(records.length * 0.15); // estimado
+  document.getElementById('security-status').innerHTML = `
+    <div class="alert-box alert-success">
+      ✅ <strong>IndexedDB ${dbAvailable ? 'ACTIVO' : 'NO DISPONIBLE'}</strong><br>
+      Refrescar o cerrar la página <strong>NO borra los datos</strong>.<br>
+      ~${usedKB} KB estimados · ${records.length} registros · ${choferes.length} choferes
+    </div>
+    ${!dbAvailable ? `<div class="alert-box alert-danger">❌ DB no disponible. Los datos están solo en RAM. Exporta ahora.</div>` : ''}
+    <div class="alert-box alert-warn">
+      ⚠ <strong>Sí puede borrar datos:</strong> "Borrar datos del sitio" en ajustes del navegador, modo incógnito, o actualizar Chrome con almacenamiento lleno.<br>
+      <strong>Descarga Backup JSON periódicamente.</strong>
+    </div>`;
+}
+
+async function addChofer() {
+  const inp = document.getElementById('new-chofer-input');
+  const v   = inp.value.trim();
+  if (!v) return;
+  if (!choferes.includes(v)) choferes.push(v);
+  inp.value = '';
+  syncChoferSelect();
+  renderSettings();
+  await persistConfig();
+  toast('✓ Chofer: ' + v);
+}
+
+async function bulkAddChoferes() {
+  const ta    = document.getElementById('bulk-choferes');
+  const lines = ta.value.split('\n').map(l => l.trim()).filter(Boolean);
+  let added   = 0;
+  lines.forEach(l => { if (!choferes.includes(l)) { choferes.push(l); added++; } });
+  ta.value = '';
+  syncChoferSelect();
+  renderSettings();
+  await persistConfig();
+  toast(added + ' choferes agregados ✓');
+}
+
+async function removeChofer(i) {
+  choferes.splice(i, 1);
+  syncChoferSelect();
+  renderSettings();
+  await persistConfig();
+}
+
+function syncChoferSelect() {
+  const sel = document.getElementById('chofer-select');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Sin asignar —</option>' +
+    choferes.map(c => `<option value="${escAttr(c)}"${c === cur ? ' selected' : ''}>${c}</option>`).join('');
+}
+
+async function addColumn() {
+  const inp = document.getElementById('new-col-input');
+  const v   = inp.value.trim().replace(/\s+/g, '_').toLowerCase();
+  if (!v) return;
+  extraCols.push(v);
+  inp.value = '';
+  records.forEach(r => { if (!(v in r)) r[v] = ''; });
+  renderSettings();
+  await persistConfig();
+}
+
+async function removeColumn(i) {
+  const col = extraCols[i];
+  extraCols.splice(i, 1);
+  records.forEach(r => delete r[col]);
+  renderSettings();
+  await persistConfig();
+}
+
+/* ═══════════════════════════════════════════════
+   LINTERNA
+═══════════════════════════════════════════════ */
+async function toggleTorch() {
+  if (!stream) { toast('Inicia la cámara primero'); return; }
+  const track = stream.getVideoTracks()[0];
+  const caps  = track.getCapabilities ? track.getCapabilities() : {};
+  if (!caps.torch) { toast('Linterna no disponible en este dispositivo'); return; }
+  torchOn = !torchOn;
+  await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+  document.getElementById('fab-torch').classList.toggle('on', torchOn);
+  toast(torchOn ? '🔦 Linterna ON' : '🔦 Linterna OFF');
+}
+
+/* ═══════════════════════════════════════════════
+   EXPORTS
+═══════════════════════════════════════════════ */
+const getHdr = () => ['guia', 'tipo', 'chofer', 'fecha', 'hora', ...extraCols];
+const dl = (name, content, type) => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+};
+
+function exportExcel() {
+  if (!records.length) { toast('No hay datos'); return; }
+  const wb  = XLSX.utils.book_new();
+  const hdr = getHdr();
+
+  // Hoja "Todas"
+  const wsAll = XLSX.utils.aoa_to_sheet([hdr, ...records.map(r => hdr.map(h => r[h] || ''))]);
+  wsAll['!cols'] = hdr.map(() => ({ wch: 24 }));
+  XLSX.utils.book_append_sheet(wb, wsAll, 'Todas las Guías');
+
+  // Hoja por chofer
+  const chMap = {};
+  records.forEach(r => {
+    const ch = r.chofer || 'Sin asignar';
+    if (!chMap[ch]) chMap[ch] = [];
+    chMap[ch].push(r);
+  });
+  Object.entries(chMap).forEach(([ch, rows]) => {
+    const ws = XLSX.utils.aoa_to_sheet([hdr, ...rows.map(r => hdr.map(h => r[h] || ''))]);
+    ws['!cols'] = hdr.map(() => ({ wch: 24 }));
+    XLSX.utils.book_append_sheet(wb, ws, ch.substring(0, 31));
+  });
+
+  // Hoja resumen
+  const sum = [['Chofer', 'Total guías', 'Fechas activas']];
+  Object.entries(chMap).forEach(([ch, rows]) => {
+    sum.push([ch, rows.length, [...new Set(rows.map(r => r.fecha))].join(', ')]);
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), 'Resumen');
+  XLSX.writeFile(wb, `guias_${today().replace(/\//g, '-')}.xlsx`);
+  toast('Excel descargado ✓');
+}
+
+function exportCSV() {
+  if (!records.length) { toast('No hay datos'); return; }
+  const hdr = getHdr();
+  const rows = [hdr.join(','), ...records.map(r =>
+    hdr.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(',')
+  )];
+  dl(`guias_${today().replace(/\//g, '-')}.csv`, '\uFEFF' + rows.join('\n'), 'text/csv;charset=utf-8');
+  toast('CSV descargado ✓');
+}
+
+function exportJSON() {
+  if (!records.length) { toast('No hay datos'); return; }
+  dl(`guias_${today().replace(/\//g, '-')}.json`, JSON.stringify(records, null, 2), 'application/json');
+  toast('JSON descargado ✓');
+}
+
+function exportTXT() {
+  if (!records.length) { toast('No hay datos'); return; }
+  dl(`guias_${today().replace(/\//g, '-')}.txt`, records.map(r => r.guia).join('\n'), 'text/plain');
+  toast('TXT descargado ✓');
+}
+
+function exportHTML() {
+  if (!records.length) { toast('No hay datos'); return; }
+  const hdr = getHdr();
+  dl(`guias_${today().replace(/\//g, '-')}.html`,
+    `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Guías ${today()}</title>
+<style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px}
+h2{margin-bottom:16px}table{border-collapse:collapse;width:100%}
+th{background:#0a0e1a;color:#00e5ff;padding:10px 8px;text-align:left}
+td{padding:7px 8px;border-bottom:1px solid #eee}</style></head>
+<body><h2>📦 Guías — ${today()} — ${records.length} registros — ${nowStr()}</h2>
+<table><thead><tr>${hdr.map(h => `<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
+<tbody>${records.map(r => `<tr>${hdr.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`).join('')}
+</tbody></table></body></html>`, 'text/html');
+  toast('HTML descargado ✓');
+}
+
+async function copyClipboard() {
+  if (!records.length) { toast('No hay datos'); return; }
+  const hdr = getHdr();
+  const txt = [hdr.join('\t'), ...records.map(r => hdr.map(h => r[h] || '').join('\t'))].join('\n');
+  await navigator.clipboard.writeText(txt);
+  toast('Copiado al portapapeles ✓');
+}
+
+function exportBackupJSON(silent = false) {
+  const data = { version: 3, exported: nowStr(), records, choferes, extraCols, dupCount };
+  dl(`backup_guias_${Date.now()}.json`, JSON.stringify(data, null, 2), 'application/json');
+  if (!silent) toast('Backup descargado ✓');
+}
+
+async function importBackup(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+    if (!data.records) throw new Error('Formato inválido — no se encontró "records"');
+    if (!confirm(
+      `Importar ${data.records.length} registros y ${(data.choferes || []).length} choferes?\n\n` +
+      `Exportado: ${data.exported || 'desconocido'}\n\n` +
+      `⚠ Esto REEMPLAZA los datos actuales.`
+    )) return;
+
+    records   = data.records   || [];
+    choferes  = data.choferes  || [];
+    extraCols = data.extraCols || [];
+    dupCount  = data.dupCount  || 0;
+
+    // Reconstruir guidSet
+    guidSet = new Set(records.map(r => r.guia));
+
+    await idbClear('records');
+    for (const r of records) await idbPut('records', r);
+    await persistConfig();
+
+    syncChoferSelect();
+    updateStats();
+    renderTable();
+    toast(records.length + ' guías restauradas ✓');
+  } catch(e) {
+    toast('Error importando: ' + e.message);
+  }
+  event.target.value = '';
+}
+
+function updateExportPanel() {
+  document.getElementById('export-count').textContent = records.length;
+  const chMap = {};
+  records.forEach(r => {
+    const ch = r.chofer || 'Sin asignar';
+    chMap[ch] = (chMap[ch] || 0) + 1;
+  });
+  document.getElementById('chofer-summary').innerHTML =
+    Object.keys(chMap).length
+    ? Object.entries(chMap).sort((a, b) => b[1] - a[1]).map(([ch, n]) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;
+          padding:9px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
+          <span>👤 ${escHtml(ch)}</span>
+          <span style="color:var(--accent);font-weight:700">${n} guías</span>
+        </div>`).join('')
+    : '<div style="color:var(--text2);font-size:0.75rem;padding:10px 0">Sin datos todavía</div>';
+}
+
+async function clearStorageAll() {
+  if (!confirm(
+    '¿Borrar ABSOLUTAMENTE TODO?\n\n' +
+    'Registros + choferes + configuración.\n' +
+    'Esto es IRREVERSIBLE. ¿Seguro?'
+  )) return;
+  await idbClear('records');
+  await idbClear('config');
+  records   = [];
+  choferes  = [];
+  extraCols = [];
+  dupCount  = 0;
+  guidSet   = new Set();
+  syncChoferSelect();
+  updateStats();
+  renderTable();
+  renderSettings();
+  toast('Todo borrado');
+}
+
+/* ═══════════════════════════════════════════════
+   BEEP
+═══════════════════════════════════════════════ */
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function beep() {
+  try {
+    const c = getAudioCtx();
+    const o = c.createOscillator();
+    const g = c.createGain();
+    o.connect(g);
+    g.connect(c.destination);
+    o.type = 'square';
+    o.frequency.value = 1400;
+    g.gain.setValueAtTime(0.08, c.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
+    o.start();
+    o.stop(c.currentTime + 0.1);
+  } catch(e) {}
+}
+
+/* ═══════════════════════════════════════════════
+   TOAST
+═══════════════════════════════════════════════ */
+let tT;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(tT);
+  tT = setTimeout(() => el.classList.remove('show'), 2400);
+}
+
+/* ═══════════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════════ */
+async function init() {
+  try {
+    await openDB();
+    records   = await idbGetAll('records');
+    records.sort((a, b) => b.timestamp - a.timestamp);
+    choferes  = await cfgGet('choferes',  []);
+    extraCols = await cfgGet('extraCols', []);
+    dupCount  = await cfgGet('dupCount',  0);
+
+    // Construir guidSet para dedup rápido
+    guidSet = new Set(records.map(r => r.guia));
+
+    setDbStatus('ok', '💾 OK');
+    syncChoferSelect();
+    updateStats();
+
+    if (records.length) toast('✓ ' + records.length + ' guías en memoria');
+    else toast('✓ App lista');
+
+  } catch(e) {
+    // DB falló — seguir en modo RAM con advertencia visible
+    dbAvailable = false;
+    setDbStatus('err', '❌ DB ERROR');
+    document.getElementById('db-error-banner').style.display = 'block';
+    console.error('DB init error:', e);
+    toast('⚠ Base de datos no disponible: ' + e.message);
+  }
+}
+
+window.addEventListener('DOMContentLoaded', init);
+
+// Guardar config cuando se cierra/recarga la página
+window.addEventListener('beforeunload', () => {
+  if (dbAvailable) persistConfig();
+});
+
+// Visibilidad: cuando el usuario vuelve a la app, verificar que la DB sigue activa
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && dbAvailable && db) {
+    // Test rápido de lectura
+    try { db.transaction('config', 'readonly'); }
+    catch(e) { setDbStatus('err', '❌ DB ERROR'); toast('⚠ DB cerrada, exporta los datos'); }
+  }
+});
+</script>
+</body>
+</html>
