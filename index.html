@@ -5,199 +5,181 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0e1a">
 <title>EscanerGuías</title>
-<!-- ZXing para lectura de códigos -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/zxing-js/0.19.2/umd/index.min.js"></script>
-<!-- SheetJS para exportar Excel -->
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root {
-  --bg:#0a0e1a; --surface:#111827; --surface2:#1c2536;
-  --accent:#00e5ff; --accent2:#ff6b35; --success:#00d97e;
-  --danger:#ff4757; --warn:#ffd32a; --text:#e8eaf6; --text2:#8892a4;
-  --border:rgba(0,229,255,0.15); --radius:12px; --font:'Courier New',monospace;
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1c2536;
+  --accent:#00e5ff;--accent2:#ff6b35;--success:#00d97e;
+  --danger:#ff4757;--warn:#ffd32a;--text:#e8eaf6;--text2:#8892a4;
+  --border:rgba(0,229,255,0.15);--r:12px;--font:'Courier New',monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
-
-/* ─── HEADER ─── */
 header{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 14px;
   display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;
   box-shadow:0 2px 20px rgba(0,0,0,.5)}
-.logo{font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:2px;text-transform:uppercase}
+.logo{font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:2px}
 .logo span{color:var(--accent2)}
-.header-right{display:flex;align-items:center;gap:8px}
-.header-count{background:var(--accent);color:var(--bg);font-size:0.7rem;font-weight:700;padding:3px 10px;border-radius:20px;min-width:60px;text-align:center}
-.db-status{display:flex;align-items:center;gap:4px;font-size:0.6rem;padding:3px 8px;border-radius:20px;transition:all .3s}
-.db-status.ok{background:rgba(0,217,126,.15);color:var(--success);border:1px solid var(--success)}
-.db-status.err{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger);animation:pulse-dot 1s infinite}
-.db-status.saving{background:rgba(255,211,42,.15);color:var(--warn);border:1px solid var(--warn)}
-@keyframes pulse-dot{0%,100%{opacity:1}50%{opacity:.5}}
-
-/* ─── TABS ─── */
+.hdr-right{display:flex;align-items:center;gap:8px}
+.db-pill{font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:20px;transition:all .3s}
+.db-pill.ok{background:rgba(0,217,126,.15);color:var(--success);border:1px solid var(--success)}
+.db-pill.err{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger)}
+.db-pill.saving{background:rgba(255,211,42,.15);color:var(--warn);border:1px solid var(--warn)}
+.cnt{background:var(--accent);color:var(--bg);font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:20px;min-width:55px;text-align:center}
 .tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:49px;z-index:99}
-.tab{flex:1;padding:10px 4px;text-align:center;font-size:0.68rem;letter-spacing:.5px;
-  text-transform:uppercase;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s;user-select:none}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(0,229,255,.03)}
+.tab{flex:1;padding:10px 2px;text-align:center;font-size:0.65rem;letter-spacing:.5px;
+  text-transform:uppercase;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .panel{display:none;padding:12px}.panel.active{display:block}
 
-/* ─── SCANNER ─── */
-.cam-wrapper{position:relative;background:#000;border-radius:var(--radius);overflow:hidden;
-  border:1px solid var(--border);aspect-ratio:4/3;max-height:58vw;margin-top:10px;
-  box-shadow:0 0 30px rgba(0,229,255,.1)}
-#video{width:100%;height:100%;object-fit:cover;display:block}
-.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
-.scan-frame{width:70%;aspect-ratio:3/1.2;border:2px solid var(--accent);border-radius:6px;
-  box-shadow:0 0 0 9999px rgba(0,0,0,.4);position:relative}
-.scan-line{position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--accent),transparent);
-  box-shadow:0 0 8px var(--accent);animation:scan-move 1.2s ease-in-out infinite}
-@keyframes scan-move{0%{top:5%}100%{top:95%}}
-.scan-frame::before,.scan-frame::after,.scan-frame .c1,.scan-frame .c2{content:'';position:absolute;width:18px;height:18px}
-.scan-frame::before{top:-2px;left:-2px;border-top:3px solid var(--accent2);border-left:3px solid var(--accent2)}
-.scan-frame::after{top:-2px;right:-2px;border-top:3px solid var(--accent2);border-right:3px solid var(--accent2)}
-.scan-frame .c1{bottom:-2px;left:-2px;border-bottom:3px solid var(--accent2);border-left:3px solid var(--accent2)}
-.scan-frame .c2{bottom:-2px;right:-2px;border-bottom:3px solid var(--accent2);border-right:3px solid var(--accent2)}
-.cam-info{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(0,0,0,.7));
-  padding:6px 10px;font-size:0.6rem;color:rgba(255,255,255,.6);text-align:center}
+/* CHOFER BOX */
+.chofer-box{background:var(--surface2);border:2px solid var(--accent);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.chofer-box-label{font-size:0.6rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.chofer-active{display:flex;align-items:center;gap:10px}
+.ch-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent2);color:var(--bg);
+  font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ch-name-big{font-size:1rem;font-weight:700;color:var(--text);flex:1}
+.ch-sub{font-size:0.7rem;color:var(--text2)}
+.btn-change{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  color:var(--accent2);font-family:var(--font);font-size:0.65rem;padding:7px 12px;cursor:pointer;font-weight:700;white-space:nowrap}
 
-/* ─── BUTTONS ─── */
-.cam-controls{display:flex;gap:8px;margin-top:10px}
-.btn{flex:1;padding:11px 8px;border:none;border-radius:var(--radius);font-family:var(--font);
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:flex-end;justify-content:center}
+.modal-bg.show{display:flex;animation:fdIn .2s}
+@keyframes fdIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:500px;
+  border-top:2px solid var(--border);max-height:85vh;overflow-y:auto}
+.modal-title{font-size:0.8rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;font-weight:700}
+.ch-opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r);
+  background:var(--surface2);border:1px solid var(--border);cursor:pointer;margin-bottom:8px;transition:all .15s}
+.ch-opt:active{border-color:var(--accent)}
+.ch-opt-av{width:38px;height:38px;border-radius:50%;background:var(--accent2);color:var(--bg);
+  font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ch-opt-name{font-size:0.85rem;font-weight:700}
+.ch-opt-sub{font-size:0.62rem;color:var(--text2)}
+
+/* CÁMARA */
+.cam-wrap{background:#000;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);margin-bottom:10px;min-height:180px;position:relative}
+#reader{width:100%}
+#reader__dashboard_section_swaplink,#reader__filescan_input,#html5-qrcode-button-camera-stop,
+#html5-qrcode-button-camera-start,#reader__dashboard_section_csr button,
+#reader__status_span,#reader__header_message,#reader__dashboard{display:none!important}
+#reader__scan_region{border-radius:var(--r);overflow:hidden}
+#reader__scan_region img{display:none!important}
+.cam-badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.65);color:var(--accent);font-size:0.6rem;padding:3px 10px;
+  border-radius:20px;letter-spacing:1px;pointer-events:none;white-space:nowrap;z-index:10}
+
+/* BOTONES */
+.cam-controls{display:flex;gap:8px;margin-bottom:10px}
+.btn{flex:1;padding:11px 8px;border:none;border-radius:var(--r);font-family:var(--font);
   font-size:0.72rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
-  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px;-webkit-tap-highlight-color:transparent}
-.btn:active{transform:scale(.94);opacity:.85}
+  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.btn:active{transform:scale(.94)}
 .btn-primary{background:var(--accent);color:var(--bg)}
 .btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
 .btn-danger{background:var(--danger);color:#fff}
 .btn-success{background:var(--success);color:var(--bg)}
-.btn-warn{background:var(--warn);color:var(--bg)}
 
-/* ─── FLASH ─── */
-.flash-result{margin-top:10px;padding:12px 14px;border-radius:var(--radius);font-size:0.88rem;
+/* FLASH */
+.flash{margin-bottom:10px;padding:12px 14px;border-radius:var(--r);font-size:0.9rem;
   letter-spacing:1px;text-align:center;display:none;font-weight:700}
-.flash-result.show{display:block;animation:flashIn .2s ease}
-.flash-result.ok{background:rgba(0,217,126,.15);border:1px solid var(--success);color:var(--success)}
-.flash-result.dup{background:rgba(255,71,87,.15);border:1px solid var(--danger);color:var(--danger)}
-@keyframes flashIn{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
+.flash.show{display:block;animation:fIn .2s}
+.flash.ok{background:rgba(0,217,126,.15);border:1px solid var(--success);color:var(--success)}
+.flash.dup{background:rgba(255,71,87,.15);border:1px solid var(--danger);color:var(--danger)}
+@keyframes fIn{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
 
-/* ─── CHOFER ROW ─── */
-.chofer-row{display:flex;gap:8px;align-items:center;margin-top:4px}
-.label-sm{font-size:0.65rem;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;white-space:nowrap}
-.input-text{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
-  color:var(--text);font-family:var(--font);font-size:0.85rem;padding:10px 12px;outline:none;width:100%;
-  -webkit-appearance:none;appearance:none}
-.input-text:focus{border-color:var(--accent);box-shadow:0 0 0 2px rgba(0,229,255,.1)}
-select.input-text{cursor:pointer}
+/* INPUTS */
+.manual-row{display:flex;gap:8px;margin-bottom:10px}
+.input-text{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);
+  color:var(--text);font-family:var(--font);font-size:0.85rem;padding:10px 12px;outline:none;width:100%}
+.input-text:focus{border-color:var(--accent)}
+select.input-text{cursor:pointer;-webkit-appearance:none}
 
-/* ─── STATS ─── */
-.manual-row{display:flex;gap:8px;margin-top:10px}
-.stats-row{display:flex;gap:8px;margin-top:10px}
-.stat-card{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 4px;text-align:center}
-.stat-num{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
-.stat-label{font-size:0.58rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+/* STATS */
+.stats-row{display:flex;gap:8px;margin-bottom:10px}
+.stat{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 4px;text-align:center}
+.stat-n{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
+.stat-l{font-size:0.58rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
 
-/* ─── TABLE ─── */
-.data-controls{display:flex;gap:8px;margin-bottom:10px}
-.search-input{flex:1}
-.table-wrap{overflow-x:auto;border-radius:var(--radius);border:1px solid var(--border);max-height:calc(100vh - 220px);overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:0.72rem;min-width:400px}
+/* RECIENTES */
+.recent-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);
+  border-radius:8px;margin-bottom:4px;border-left:3px solid var(--success);animation:sIn .2s}
+@keyframes sIn{from{transform:translateX(-6px);opacity:0}to{transform:translateX(0);opacity:1}}
+.recent-code{font-size:0.8rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.recent-time{font-size:0.6rem;color:var(--text2);flex-shrink:0}
+.label-sm{font-size:0.6rem;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+
+/* TABLE */
+.data-controls{display:flex;gap:8px;margin-bottom:8px}
+.ch-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.ch-pill{font-size:0.63rem;padding:4px 10px;border-radius:20px;cursor:pointer;font-weight:700;
+  background:var(--surface2);border:1px solid var(--border);color:var(--text2);transition:all .15s}
+.ch-pill.active{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
+.table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);max-height:calc(100vh - 240px);overflow-y:auto}
+table{width:100%;border-collapse:collapse;font-size:0.72rem;min-width:360px}
 thead{background:var(--surface2);position:sticky;top:0;z-index:10}
 th{padding:10px 8px;text-align:left;color:var(--accent);font-size:0.62rem;letter-spacing:1.5px;
   text-transform:uppercase;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
-th:hover{color:var(--accent2)}
-td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.03);color:var(--text);
-  max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-tr:last-child td{border-bottom:none}
+td{padding:8px;border-bottom:1px solid rgba(255,255,255,.03);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 tr:hover td{background:rgba(0,229,255,.03)}
-.badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:0.58rem;font-weight:700;letter-spacing:1px}
-.badge-qr{background:rgba(0,229,255,.15);color:var(--accent)}
-.badge-bar{background:rgba(255,107,53,.15);color:var(--accent2)}
-.badge-man{background:rgba(255,211,42,.15);color:var(--warn)}
-.del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:1rem;padding:3px 8px;border-radius:6px;transition:background .15s}
-.del-btn:active{background:rgba(255,71,87,.15)}
-.empty-state{text-align:center;padding:40px 20px;color:var(--text2)}
-.empty-state .big{font-size:2.5rem;margin-bottom:8px}
+.del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;padding:2px 6px;border-radius:4px}
+.empty-state{text-align:center;padding:32px 20px;color:var(--text2)}
 
-/* ─── EXPORT ─── */
-.export-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.export-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);
-  padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s;user-select:none}
-.export-card:active{border-color:var(--accent);background:rgba(0,229,255,.06);transform:scale(.96)}
-.export-icon{font-size:2rem;margin-bottom:6px}
-.export-name{font-size:0.75rem;font-weight:700;color:var(--text);letter-spacing:1px}
-.export-desc{font-size:0.6rem;color:var(--text2);margin-top:3px}
+/* EXPORT */
+.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.exp-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s}
+.exp-card:active{border-color:var(--accent);transform:scale(.96)}
+.exp-icon{font-size:2rem;margin-bottom:6px}
+.exp-name{font-size:0.75rem;font-weight:700;color:var(--text)}
+.exp-desc{font-size:0.6rem;color:var(--text2);margin-top:3px}
 
-/* ─── SETTINGS ─── */
-.settings-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
-.settings-title{font-size:0.65rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.setting-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}
-.setting-row:last-child{margin-bottom:0}
-.setting-label{font-size:0.78rem;color:var(--text)}
-.setting-hint{font-size:0.62rem;color:var(--text2);margin-top:2px}
-.toggle{position:relative;width:46px;height:26px;flex-shrink:0}
+/* SETTINGS */
+.sec{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.sec-title{font-size:0.62rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.srow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.srow:last-child{margin-bottom:0}
+.slabel{font-size:0.78rem}
+.shint{font-size:0.62rem;color:var(--text2);margin-top:2px}
+.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
 .toggle input{opacity:0;width:0;height:0;position:absolute}
-.toggle-slider{position:absolute;inset:0;background:#333;border-radius:26px;cursor:pointer;transition:.3s}
-.toggle-slider::before{content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
-.toggle input:checked+.toggle-slider{background:var(--accent)}
-.toggle input:checked+.toggle-slider::before{transform:translateX(20px)}
-.col-list,.chofer-list{display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto}
+.tsl{position:absolute;inset:0;background:#333;border-radius:24px;cursor:pointer;transition:.3s}
+.tsl::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
+.toggle input:checked+.tsl{background:var(--accent)}
+.toggle input:checked+.tsl::before{transform:translateX(20px)}
+.col-list,.ch-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
 .col-item{display:flex;align-items:center;gap:8px}
 .col-item .input-text{flex:1;padding:7px 10px;font-size:0.78rem}
-.alert-box{border-radius:var(--radius);padding:12px 14px;margin-bottom:8px;font-size:0.75rem;line-height:1.7}
-.alert-warn{background:rgba(255,211,42,.08);border:1px solid var(--warn);color:var(--warn)}
-.alert-success{background:rgba(0,217,126,.08);border:1px solid var(--success);color:var(--success)}
-.alert-info{background:rgba(0,229,255,.08);border:1px solid var(--accent);color:var(--accent)}
-.alert-danger{background:rgba(255,71,87,.08);border:1px solid var(--danger);color:var(--danger)}
+.abox{border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:0.73rem;line-height:1.6}
+.abox-warn{background:rgba(255,211,42,.08);border:1px solid var(--warn);color:var(--warn)}
+.abox-ok{background:rgba(0,217,126,.08);border:1px solid var(--success);color:var(--success)}
+.abox-info{background:rgba(0,229,255,.08);border:1px solid var(--accent);color:var(--accent)}
+.abox-err{background:rgba(255,71,87,.08);border:1px solid var(--danger);color:var(--danger)}
 
-/* ─── DB ERROR BANNER ─── */
-#db-error-banner{display:none;background:var(--danger);color:#fff;padding:10px 14px;
-  font-size:0.75rem;text-align:center;line-height:1.6;position:sticky;top:49px;z-index:98}
-
-/* ─── TOAST ─── */
-#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(80px);
+#db-banner{display:none;background:var(--danger);color:#fff;padding:8px 14px;font-size:0.72rem;text-align:center;line-height:1.5}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
   background:var(--surface2);border:1px solid var(--border);color:var(--text);
-  padding:10px 20px;border-radius:30px;font-size:0.78rem;letter-spacing:1px;z-index:9999;
+  padding:10px 20px;border-radius:30px;font-size:0.78rem;z-index:9999;
   transition:transform .3s cubic-bezier(.175,.885,.32,1.275);white-space:nowrap;pointer-events:none;
   box-shadow:0 4px 20px rgba(0,0,0,.5)}
 #toast.show{transform:translateX(-50%) translateY(0)}
-
-/* ─── FAB ─── */
-#fab-torch{position:fixed;bottom:16px;right:16px;width:52px;height:52px;border-radius:50%;
-  background:var(--surface2);border:2px solid var(--border);font-size:1.4rem;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,.5);
-  transition:all .2s;z-index:200;-webkit-tap-highlight-color:transparent}
-#fab-torch.on{background:var(--warn);border-color:var(--warn);box-shadow:0 0 20px rgba(255,211,42,.5)}
-
-/* ─── PROGRESS ─── */
-.backup-bar{height:4px;background:var(--surface2);border-radius:4px;margin-top:8px;overflow:hidden}
-.backup-bar-fill{height:100%;background:var(--accent);border-radius:4px;transition:width .3s}
-
-/* ─── CHOFER BADGE ─── */
-.chofer-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(255,107,53,.1);
-  border:1px solid rgba(255,107,53,.3);border-radius:20px;padding:2px 10px;font-size:0.65rem;color:var(--accent2)}
-
-@media(min-width:600px){
-  .cam-wrapper{max-height:280px}
-  body{max-width:640px;margin:0 auto}
-}
+@media(min-width:600px){body{max-width:640px;margin:0 auto}}
 </style>
 </head>
 <body>
 
-<!-- BANNER DE ERROR DE BASE DE DATOS -->
-<div id="db-error-banner">
-  ⚠️ <strong>ERROR: IndexedDB no disponible.</strong> Los datos se guardan solo en RAM y se perderán al cerrar.
-  Verifica que no estés en modo incógnito y recarga la página.
-</div>
+<div id="db-banner">⚠ IndexedDB no disponible — Los datos NO se guardarán al cerrar. Exporta ahora.</div>
 
 <header>
   <div class="logo">Escanea<span>Guías</span></div>
-  <div class="header-right">
-    <div class="db-status ok" id="db-status" title="Estado base de datos">💾 DB OK</div>
-    <div class="header-count" id="header-count">0 guías</div>
+  <div class="hdr-right">
+    <div class="db-pill ok" id="db-pill">💾 OK</div>
+    <div class="cnt" id="hdr-cnt">0 guías</div>
   </div>
 </header>
 
@@ -208,1014 +190,652 @@ tr:hover td{background:rgba(0,229,255,.03)}
   <div class="tab" data-tab="settings">⚙️ Config</div>
 </div>
 
-<!-- ══════════════════════════════════
-     SCANNER
-══════════════════════════════════ -->
+<!-- SCANNER -->
 <div id="scanner-panel" class="panel active">
-  <div class="chofer-row">
-    <span class="label-sm">Chofer:</span>
-    <select class="input-text" id="chofer-select" style="flex:1"></select>
+
+  <div class="chofer-box" id="chofer-box">
+    <div class="chofer-box-label">👤 Chofer activo</div>
+    <div id="box-empty" style="color:var(--warn);font-size:0.85rem;font-weight:700;margin-bottom:10px">
+      ⚠ Selecciona un chofer para empezar a escanear
+    </div>
+    <div id="box-active" class="chofer-active" style="display:none;margin-bottom:10px">
+      <div class="ch-avatar" id="ch-av">?</div>
+      <div style="flex:1;min-width:0">
+        <div class="ch-name-big" id="ch-nm">—</div>
+        <div class="ch-sub" id="ch-sb">0 guías hoy</div>
+      </div>
+      <button class="btn-change" onclick="openModal()">CAMBIAR</button>
+    </div>
+    <button class="btn btn-primary" id="btn-sel" onclick="openModal()" style="width:100%">
+      SELECCIONAR CHOFER
+    </button>
   </div>
 
-  <div class="cam-wrapper">
-    <video id="video" autoplay playsinline muted></video>
-    <div class="scan-overlay">
-      <div class="scan-frame">
-        <div class="scan-line"></div>
-        <div class="c1"></div><div class="c2"></div>
-      </div>
-    </div>
-    <div class="cam-info" id="cam-info">Cámara apagada</div>
+  <div class="cam-wrap">
+    <div id="reader"></div>
+    <div class="cam-badge" id="cam-badge">Cámara apagada</div>
   </div>
 
   <div class="cam-controls">
-    <button class="btn btn-primary" id="btn-start" onclick="startCamera()">▶ INICIAR</button>
-    <button class="btn btn-secondary" onclick="flipCamera()" title="Cambiar cámara">🔄</button>
-    <button class="btn btn-secondary" id="btn-pause" onclick="togglePause()" title="Pausar">⏸</button>
+    <button class="btn btn-primary" id="btn-cam" onclick="toggleCam()">▶ INICIAR CÁMARA</button>
+    <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara">🔄</button>
+    <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()">🔦</button>
   </div>
 
-  <div id="flash-result" class="flash-result"></div>
+  <div class="flash" id="flash"></div>
 
   <div class="manual-row">
-    <input class="input-text" id="manual-input" type="text"
-      placeholder="Ingresar guía manual..." autocomplete="off" autocorrect="off" spellcheck="false">
+    <input class="input-text" id="manual-in" type="text" placeholder="Ingresar número de guía manual..."
+      autocomplete="off" autocorrect="off" spellcheck="false">
     <button class="btn btn-secondary" style="flex:0 0 auto;padding:10px 16px" onclick="addManual()">＋</button>
   </div>
 
   <div class="stats-row">
-    <div class="stat-card"><div class="stat-num" id="stat-total">0</div><div class="stat-label">Total</div></div>
-    <div class="stat-card"><div class="stat-num" id="stat-hoy" style="color:var(--success)">0</div><div class="stat-label">Hoy</div></div>
-    <div class="stat-card"><div class="stat-num" id="stat-dups" style="color:var(--danger)">0</div><div class="stat-label">Dups</div></div>
-    <div class="stat-card"><div class="stat-num" id="stat-choferes" style="color:var(--accent2)">0</div><div class="stat-label">Choferes</div></div>
+    <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total</div></div>
+    <div class="stat"><div class="stat-n" id="st-hoy" style="color:var(--success)">0</div><div class="stat-l">Hoy</div></div>
+    <div class="stat"><div class="stat-n" id="st-dups" style="color:var(--danger)">0</div><div class="stat-l">Dups</div></div>
+    <div class="stat"><div class="stat-n" id="st-chof" style="color:var(--accent2)">0</div><div class="stat-l">Choferes</div></div>
   </div>
 
-  <!-- Barra de progreso autobackup -->
-  <div id="backup-progress-wrap" style="display:none;margin-top:10px">
-    <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--text2);margin-bottom:3px">
-      <span>Progreso hasta backup automático</span>
-      <span id="backup-progress-txt">0 / 200</span>
-    </div>
-    <div class="backup-bar"><div class="backup-bar-fill" id="backup-bar-fill" style="width:0%"></div></div>
-  </div>
+  <div class="label-sm" style="margin-top:4px">Últimas guías escaneadas</div>
+  <div id="recents"></div>
 </div>
 
-<!-- ══════════════════════════════════
-     LISTA
-══════════════════════════════════ -->
+<!-- LISTA -->
 <div id="data-panel" class="panel">
   <div class="data-controls">
-    <input class="input-text search-input" id="search-input" type="text"
-      placeholder="Buscar guía, chofer, fecha..." oninput="renderTable()">
-    <button class="btn btn-danger" style="flex:0 0 auto;padding:10px 14px" onclick="clearAll()" title="Borrar todo">🗑</button>
+    <input class="input-text" id="search-in" type="text" placeholder="Buscar guía, chofer..." oninput="renderTable()">
+    <button class="btn btn-danger" style="flex:0 0 auto;padding:10px 14px" onclick="clearAll()">🗑</button>
   </div>
-  <div id="filter-by-chofer" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+  <div class="ch-filter" id="ch-filter"></div>
   <div class="table-wrap">
-    <table><thead id="table-head"></thead><tbody id="table-body"></tbody></table>
+    <table><thead id="tbl-head"></thead><tbody id="tbl-body"></tbody></table>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     EXPORT
-══════════════════════════════════ -->
+<!-- EXPORT -->
 <div id="export-panel" class="panel">
-  <div class="alert-box alert-info">📦 <strong id="export-count">0</strong> registros listos para exportar</div>
-  <div class="export-grid">
-    <div class="export-card" onclick="exportExcel()"><div class="export-icon">📊</div><div class="export-name">Excel</div><div class="export-desc">.xlsx · hoja por chofer</div></div>
-    <div class="export-card" onclick="exportCSV()"><div class="export-icon">📄</div><div class="export-name">CSV</div><div class="export-desc">Compatible universal</div></div>
-    <div class="export-card" onclick="exportJSON()"><div class="export-icon">{ }</div><div class="export-name">JSON</div><div class="export-desc">Datos completos</div></div>
-    <div class="export-card" onclick="exportTXT()"><div class="export-icon">📝</div><div class="export-name">TXT</div><div class="export-desc">Una guía por línea</div></div>
-    <div class="export-card" onclick="exportHTML()"><div class="export-icon">🌐</div><div class="export-name">HTML</div><div class="export-desc">Reporte imprimible</div></div>
-    <div class="export-card" onclick="copyClipboard()"><div class="export-icon">📋</div><div class="export-name">Copiar</div><div class="export-desc">Al portapapeles</div></div>
+  <div class="abox abox-info">📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes</div>
+  <div class="exp-grid">
+    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-name">Excel</div><div class="exp-desc">Hoja por chofer</div></div>
+    <div class="exp-card" onclick="exportCSV()"><div class="exp-icon">📄</div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
+    <div class="exp-card" onclick="exportJSON()"><div class="exp-icon">{ }</div><div class="exp-name">JSON</div><div class="exp-desc">Backup completo</div></div>
+    <div class="exp-card" onclick="exportTXT()"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Una guía por línea</div></div>
+    <div class="exp-card" onclick="exportHTML()"><div class="exp-icon">🌐</div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
+    <div class="exp-card" onclick="copyClip()"><div class="exp-icon">📋</div><div class="exp-name">Copiar</div><div class="exp-desc">Al portapapeles</div></div>
   </div>
-  <div class="settings-section">
-    <div class="settings-title">📊 Resumen por Chofer</div>
-    <div id="chofer-summary"></div>
+  <div class="sec">
+    <div class="sec-title">📊 Resumen por Chofer</div>
+    <div id="ch-summary"></div>
   </div>
 </div>
 
-<!-- ══════════════════════════════════
-     SETTINGS
-══════════════════════════════════ -->
+<!-- SETTINGS -->
 <div id="settings-panel" class="panel">
-
-  <div class="settings-section">
-    <div class="settings-title">🔒 Estado de la Base de Datos</div>
-    <div id="security-status"></div>
+  <div class="sec">
+    <div class="sec-title">🔒 Base de Datos</div>
+    <div id="db-info"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-success" style="flex:1;font-size:0.65rem" onclick="exportBackupJSON()">⬇ Backup JSON</button>
       <button class="btn btn-secondary" style="flex:1;font-size:0.65rem" onclick="document.getElementById('restore-file').click()">⬆ Restaurar</button>
       <input type="file" id="restore-file" accept=".json" style="display:none" onchange="importBackup(event)">
     </div>
   </div>
-
-  <div class="settings-section">
-    <div class="settings-title">⚙️ Comportamiento del Escáner</div>
-    <div class="setting-row">
-      <div><div class="setting-label">Evitar duplicados</div><div class="setting-hint">No agrega si la guía ya existe</div></div>
-      <label class="toggle"><input type="checkbox" id="set-dedup" checked><span class="toggle-slider"></span></label>
+  <div class="sec">
+    <div class="sec-title">⚙️ Escáner</div>
+    <div class="srow">
+      <div><div class="slabel">Evitar duplicados</div><div class="shint">No agrega la misma guía dos veces</div></div>
+      <label class="toggle"><input type="checkbox" id="set-dedup" checked><span class="tsl"></span></label>
     </div>
-    <div class="setting-row">
-      <div><div class="setting-label">Beep al escanear</div></div>
-      <label class="toggle"><input type="checkbox" id="set-beep" checked><span class="toggle-slider"></span></label>
+    <div class="srow">
+      <div><div class="slabel">Beep al escanear</div></div>
+      <label class="toggle"><input type="checkbox" id="set-beep" checked><span class="tsl"></span></label>
     </div>
-    <div class="setting-row">
-      <div><div class="setting-label">Vibrar al escanear</div></div>
-      <label class="toggle"><input type="checkbox" id="set-vibrate" checked><span class="toggle-slider"></span></label>
+    <div class="srow">
+      <div><div class="slabel">Vibrar al escanear</div></div>
+      <label class="toggle"><input type="checkbox" id="set-vibrate" checked><span class="tsl"></span></label>
     </div>
-    <div class="setting-row">
-      <div><div class="setting-label">Pausa entre escaneos (ms)</div><div class="setting-hint">Evita leer el mismo código dos veces</div></div>
-      <input type="number" class="input-text" id="set-pause-ms" value="1200"
-        style="width:80px;flex:0 0 auto;text-align:center" min="300" max="5000">
+    <div class="srow">
+      <div><div class="slabel">Pausa entre escaneos (ms)</div><div class="shint">Evita doble registro del mismo código</div></div>
+      <input type="number" class="input-text" id="set-pause" value="1200" style="width:80px;flex:0 0 auto;text-align:center" min="300">
     </div>
-    <div class="setting-row">
-      <div><div class="setting-label">Auto-backup cada N guías</div><div class="setting-hint">0 = desactivado</div></div>
-      <input type="number" class="input-text" id="set-autobackup" value="200"
-        style="width:80px;flex:0 0 auto;text-align:center" min="0">
+    <div class="srow">
+      <div><div class="slabel">Auto-backup cada N guías</div><div class="shint">0 = desactivado</div></div>
+      <input type="number" class="input-text" id="set-ab" value="200" style="width:80px;flex:0 0 auto;text-align:center" min="0">
     </div>
   </div>
-
-  <div class="settings-section">
-    <div class="settings-title">👤 Choferes (<span id="chofer-count">0</span>)</div>
-    <div class="alert-box alert-info" style="font-size:0.7rem;margin-bottom:10px">
-      💡 Puedes agregar <strong>todos los choferes que necesites</strong>. No hay límite.
-    </div>
-    <div class="chofer-list" id="chofer-list"></div>
+  <div class="sec">
+    <div class="sec-title">👤 Choferes (<span id="ch-count">0</span>)</div>
+    <div class="abox abox-info" style="font-size:0.7rem">💡 Sin límite. Agrega todos los que necesites.</div>
+    <div class="ch-list" id="ch-list"></div>
     <div class="manual-row" style="margin-top:10px">
-      <input class="input-text" id="new-chofer-input" type="text" placeholder="Nombre del chofer...">
+      <input class="input-text" id="new-ch-in" type="text" placeholder="Nombre del chofer...">
       <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addChofer()">＋</button>
     </div>
     <div style="margin-top:12px">
-      <div class="label-sm" style="margin-bottom:6px">Agregar lista completa (uno por línea):</div>
-      <textarea class="input-text" id="bulk-choferes" rows="4"
-        placeholder="Juan García&#10;Pedro López&#10;Carlos Ruiz&#10;..." style="resize:vertical;font-size:0.75rem"></textarea>
-      <button class="btn btn-secondary" style="width:100%;margin-top:6px;font-size:0.7rem" onclick="bulkAddChoferes()">＋ Agregar todos</button>
+      <div class="label-sm" style="margin-bottom:6px">Lista completa (uno por línea):</div>
+      <textarea class="input-text" id="bulk-ch" rows="5"
+        placeholder="Juan García&#10;Pedro López&#10;Carlos Ruiz&#10;María Torres&#10;..." style="resize:vertical;font-size:0.75rem"></textarea>
+      <button class="btn btn-secondary" style="width:100%;margin-top:6px;font-size:0.7rem" onclick="bulkChoferes()">＋ Agregar todos</button>
     </div>
   </div>
-
-  <div class="settings-section">
-    <div class="settings-title">📋 Columnas Extra</div>
+  <div class="sec">
+    <div class="sec-title">📋 Columnas Extra</div>
     <div class="col-list" id="col-list"></div>
     <div class="manual-row" style="margin-top:10px">
-      <input class="input-text" id="new-col-input" type="text" placeholder="Ej: ruta, zona, estatus...">
-      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addColumn()">＋</button>
+      <input class="input-text" id="new-col-in" type="text" placeholder="Ej: ruta, zona, tipo...">
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addCol()">＋</button>
     </div>
   </div>
-
-  <div class="settings-section">
-    <div class="settings-title">🗑 Zona de Peligro</div>
-    <div class="alert-box alert-danger" style="font-size:0.7rem;margin-bottom:10px">
-      ⚠️ Estas acciones son <strong>irreversibles</strong>. Descarga un backup primero.
-    </div>
+  <div class="sec">
+    <div class="sec-title">🗑 Zona de Peligro</div>
+    <div class="abox abox-err" style="font-size:0.7rem;margin-bottom:10px">⚠ Irreversible. Descarga backup primero.</div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll()">Borrar registros</button>
-      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearStorageAll()">Borrar TODO</button>
+      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll(false)">Borrar registros</button>
+      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll(true)">Borrar TODO</button>
     </div>
   </div>
 </div>
 
-<button id="fab-torch" onclick="toggleTorch()" title="Linterna">🔦</button>
+<!-- MODAL CHOFER -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title">👤 Seleccionar Chofer</div>
+    <div id="modal-grid"></div>
+    <div class="manual-row" style="margin-top:4px">
+      <input class="input-text" id="modal-new-ch" type="text" placeholder="Nuevo chofer...">
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="modalAdd()">＋</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
-/* ═══════════════════════════════════════════════
-   INDEXEDDB — Con fallback robusto y detección de errores
-═══════════════════════════════════════════════ */
-const DB_NAME = 'escanerguias_v3';
-const DB_VER  = 1;
-let db = null;
-let dbAvailable = false; // ← Si es false, avisamos al usuario
+/* ══════════════ INDEXEDDB ══════════════ */
+const DB_NAME='escanerguias_v4';
+let db=null,dbOK=false;
 
-function openDB() {
-  return new Promise((res, rej) => {
-    if (!window.indexedDB) { rej(new Error('IndexedDB no soportado')); return; }
-    const req = indexedDB.open(DB_NAME, DB_VER);
-    req.onupgradeneeded = e => {
-      const d = e.target.result;
-      if (!d.objectStoreNames.contains('records')) {
-        const s = d.createObjectStore('records', { keyPath: 'id' });
-        s.createIndex('guia',      'guia',      { unique: false });
-        s.createIndex('chofer',    'chofer',    { unique: false });
-        s.createIndex('timestamp', 'timestamp', { unique: false });
+function openDB(){
+  return new Promise((res,rej)=>{
+    if(!window.indexedDB){rej(new Error('No soportado'));return;}
+    const req=indexedDB.open(DB_NAME,1);
+    req.onupgradeneeded=e=>{
+      const d=e.target.result;
+      if(!d.objectStoreNames.contains('records')){
+        const s=d.createObjectStore('records',{keyPath:'id'});
+        s.createIndex('guia','guia',{unique:false});
+        s.createIndex('chofer','chofer',{unique:false});
       }
-      if (!d.objectStoreNames.contains('config')) {
-        d.createObjectStore('config', { keyPath: 'key' });
-      }
+      if(!d.objectStoreNames.contains('config'))
+        d.createObjectStore('config',{keyPath:'key'});
     };
-    req.onsuccess = e => { db = e.target.result; dbAvailable = true; res(); };
-    req.onerror   = e => rej(e.target.error);
-    req.onblocked = () => rej(new Error('DB bloqueada por otra pestaña'));
-    // Timeout de seguridad: si no abre en 5s, reportar
-    setTimeout(() => { if (!db) rej(new Error('Timeout al abrir DB')); }, 5000);
+    req.onsuccess=e=>{db=e.target.result;dbOK=true;res();};
+    req.onerror=e=>rej(e.target.error);
+    setTimeout(()=>{if(!db)rej(new Error('Timeout'));},6000);
   });
 }
-
-function idbPut(store, val) {
-  if (!dbAvailable) return Promise.resolve(); // Continúa aunque no hay DB
-  return new Promise((res, rej) => {
-    try {
-      const t = db.transaction(store, 'readwrite');
-      t.objectStore(store).put(val);
-      t.oncomplete = res;
-      t.onerror = e => rej(e.target.error);
-    } catch(e) { rej(e); }
-  });
-}
-function idbDel(store, key) {
-  if (!dbAvailable) return Promise.resolve();
-  return new Promise((res, rej) => {
-    const t = db.transaction(store, 'readwrite');
-    t.objectStore(store).delete(key);
-    t.oncomplete = res; t.onerror = e => rej(e.target.error);
-  });
-}
-function idbGetAll(store) {
-  if (!dbAvailable) return Promise.resolve([]);
-  return new Promise((res, rej) => {
-    const req = db.transaction(store, 'readonly').objectStore(store).getAll();
-    req.onsuccess = e => res(e.target.result);
-    req.onerror   = e => rej(e.target.error);
-  });
-}
-function idbClear(store) {
-  if (!dbAvailable) return Promise.resolve();
-  return new Promise((res, rej) => {
-    const t = db.transaction(store, 'readwrite');
-    t.objectStore(store).clear();
-    t.oncomplete = res; t.onerror = e => rej(e.target.error);
-  });
-}
-async function cfgGet(key, def) {
-  try {
-    const all = await idbGetAll('config');
-    const f = all.find(c => c.key === key);
-    return f ? f.value : def;
-  } catch { return def; }
-}
-const cfgSet = (key, value) => idbPut('config', { key, value });
-
-/* ═══════════════════════════════════════════════
-   ESTADO
-═══════════════════════════════════════════════ */
-let records   = [];
-let choferes  = [];
-let extraCols = [];
-let dupCount  = 0;
-let stream    = null;
-let torchOn   = false;
-let paused    = false;
-let facingMode    = 'environment';
-let sortCol   = 'timestamp';
-let sortAsc   = false;
-let scanning  = false;
-let lastCode  = '';
-let lastTime  = 0;
-let choferFilter = null;
-
-// Set de guías para lookup O(1) en lugar de find() O(n) — crítico con 1000+ registros
-let guidSet = new Set();
-
-const today  = () => new Date().toLocaleDateString('es-MX');
-const nowStr = () => new Date().toLocaleString('es-MX');
-
-/* ═══════════════════════════════════════════════
-   DB STATUS INDICATOR
-═══════════════════════════════════════════════ */
-function setDbStatus(state, msg) {
-  const el = document.getElementById('db-status');
-  el.className = 'db-status ' + state;
-  el.textContent = msg;
-}
-
-/* ═══════════════════════════════════════════════
-   GUARDAR
-═══════════════════════════════════════════════ */
-async function persistRecord(rec) {
-  setDbStatus('saving', '💾 ...');
-  try {
-    await idbPut('records', rec);
-    setDbStatus('ok', '💾 OK');
-  } catch(e) {
-    setDbStatus('err', '❌ ERR');
-    toast('⚠ Error guardando: ' + e.message);
-    console.error('persistRecord error:', e);
-  }
-}
-
-async function persistConfig() {
-  try {
-    await cfgSet('choferes',  choferes);
-    await cfgSet('extraCols', extraCols);
-    await cfgSet('dupCount',  dupCount);
-  } catch(e) { console.error('persistConfig:', e); }
-}
-
-/* ═══════════════════════════════════════════════
-   TABS
-═══════════════════════════════════════════════ */
-document.querySelectorAll('.tab').forEach(t => {
-  t.addEventListener('click', () => {
-    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
-    document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
-    t.classList.add('active');
-    document.getElementById(t.dataset.tab + '-panel').classList.add('active');
-    if (t.dataset.tab === 'data')     renderTable();
-    if (t.dataset.tab === 'export')   updateExportPanel();
-    if (t.dataset.tab === 'settings') renderSettings();
-  });
+const idbPut=(store,val)=>new Promise((res,rej)=>{
+  if(!dbOK){res();return;}
+  const t=db.transaction(store,'readwrite');
+  t.objectStore(store).put(val);
+  t.oncomplete=res;t.onerror=e=>rej(e.target.error);
 });
-
-/* ═══════════════════════════════════════════════
-   CÁMARA
-═══════════════════════════════════════════════ */
-async function startCamera() {
-  try {
-    if (stream) stream.getTracks().forEach(t => t.stop());
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode,
-        width:  { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 30, max: 60 }
-      }
-    });
-    const v = document.getElementById('video');
-    v.srcObject = stream;
-    await v.play();
-
-    const track = stream.getVideoTracks()[0];
-    const s     = track.getSettings();
-    document.getElementById('cam-info').textContent =
-      `${s.width || '?'}×${s.height || '?'} · ${facingMode === 'environment' ? 'Cámara trasera' : 'Cámara frontal'}`;
-
-    const btn = document.getElementById('btn-start');
-    btn.textContent = '🔴 EN VIVO';
-    btn.classList.replace('btn-primary', 'btn-danger');
-    btn.onclick = stopCamera;
-
-    startDecoding(v);
-    toast('Cámara iniciada ✓');
-  } catch(e) {
-    toast('Error cámara: ' + e.message);
-    console.error(e);
-  }
-}
-
-function stopCamera() {
-  scanning = false;
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
-  const btn = document.getElementById('btn-start');
-  btn.textContent = '▶ INICIAR';
-  btn.classList.replace('btn-danger', 'btn-primary');
-  btn.onclick = startCamera;
-  document.getElementById('cam-info').textContent = 'Cámara apagada';
-}
-
-function flipCamera() {
-  facingMode = facingMode === 'environment' ? 'user' : 'environment';
-  if (stream) startCamera(); else toast('Inicia la cámara primero');
-}
-
-function togglePause() {
-  paused = !paused;
-  document.getElementById('btn-pause').textContent = paused ? '▶' : '⏸';
-  toast(paused ? '⏸ Pausado' : '▶ Reanudado');
-}
-
-/* ═══════════════════════════════════════════════
-   ZXING LOOP — Optimizado para velocidad
-   Usa setTimeout en lugar de rAF para liberar
-   el hilo principal entre frames
-═══════════════════════════════════════════════ */
-function startDecoding(video) {
-  scanning = true;
-
-  const hints = new Map();
-  const F = ZXing.BarcodeFormat;
-  // Formatos más comunes primero para mayor velocidad
-  hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-    F.CODE_128, F.QR_CODE, F.CODE_39, F.EAN_13, F.EAN_8,
-    F.UPC_A, F.UPC_E, F.DATA_MATRIX, F.PDF_417, F.ITF,
-    F.CODABAR, F.CODE_93, F.AZTEC
-  ]);
-  hints.set(ZXing.DecodeHintType.TRY_HARDER, true);
-
-  const reader = new ZXing.MultiFormatReader();
-  reader.setHints(hints);
-
-  const canvas = document.createElement('canvas');
-  const ctx    = canvas.getContext('2d', { willReadFrequently: true }); // ← Optimización Chrome
-
-  // Tiempo mínimo entre frames para no saturar CPU en móviles lentos
-  const FRAME_INTERVAL = 80; // ~12 fps es suficiente para escaneo
-  let lastFrameTime = 0;
-
-  const loop = () => {
-    if (!scanning) return;
-
-    const now = performance.now();
-    if (now - lastFrameTime < FRAME_INTERVAL) {
-      requestAnimationFrame(loop);
-      return;
-    }
-    lastFrameTime = now;
-
-    if (paused || video.paused || video.readyState < 3) {
-      requestAnimationFrame(loop);
-      return;
-    }
-
-    // Reducir resolución del canvas para acelerar decodificación
-    const scale = Math.min(1, 640 / video.videoWidth);
-    canvas.width  = video.videoWidth  * scale;
-    canvas.height = video.videoHeight * scale;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    try {
-      const id  = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const lum = new ZXing.RGBLuminanceSource(id.data, canvas.width, canvas.height);
-      const bmp = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(lum));
-      const res = reader.decode(bmp);
-
-      if (res) {
-        const code  = res.getText();
-        const tsNow = Date.now();
-        const ms    = parseInt(document.getElementById('set-pause-ms').value) || 1200;
-
-        if (code !== lastCode || tsNow - lastTime > ms) {
-          lastCode = code;
-          lastTime = tsNow;
-          const fmt = ZXing.BarcodeFormat[res.getBarcodeFormat()] || 'BARCODE';
-          addRecord(code, fmt);
-        }
-      }
-    } catch(e) {
-      // NotFoundException es normal cuando no hay código — silenciar
-    }
-
-    requestAnimationFrame(loop);
-  };
-
-  requestAnimationFrame(loop);
-}
-
-/* ═══════════════════════════════════════════════
-   AGREGAR REGISTRO
-═══════════════════════════════════════════════ */
-async function addRecord(code, type) {
-  // Deduplicación con Set → O(1) aunque sean 10,000 registros
-  if (document.getElementById('set-dedup').checked && guidSet.has(code)) {
-    dupCount++;
-    showFlash('⚠ DUPLICADO: ' + code, 'dup');
-    updateStats();
-    cfgSet('dupCount', dupCount);
-    return;
-  }
-
-  const chofer = document.getElementById('chofer-select').value;
-  const rec = {
-    id:        Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-    guia:      code,
-    tipo:      type,
-    chofer:    chofer,
-    fecha:     today(),
-    hora:      new Date().toLocaleTimeString('es-MX'),
-    timestamp: Date.now()
-  };
-  extraCols.forEach(c => { rec[c] = ''; });
-
-  // Actualizar estructura de datos
-  records.unshift(rec);
-  guidSet.add(code);
-
-  // Guardar en IndexedDB INMEDIATAMENTE
-  await persistRecord(rec);
-
-  // Feedback sensorial
-  if (document.getElementById('set-beep').checked)    beep();
-  if (document.getElementById('set-vibrate').checked && navigator.vibrate) navigator.vibrate(55);
-
-  showFlash('✓ ' + code, 'ok');
-  updateStats();
-
-  // Auto-backup
-  const ab = parseInt(document.getElementById('set-autobackup').value) || 0;
-  if (ab > 0) {
-    if (records.length % ab === 0) exportBackupJSON(true);
-    // Actualizar barra de progreso
-    const progress = (records.length % ab) / ab;
-    const fill = document.getElementById('backup-bar-fill');
-    const txt  = document.getElementById('backup-progress-txt');
-    if (fill) {
-      fill.style.width = (progress * 100) + '%';
-      txt.textContent  = (records.length % ab) + ' / ' + ab;
-    }
-  }
-}
-
-function addManual() {
-  const inp = document.getElementById('manual-input');
-  const v   = inp.value.trim();
-  if (!v) return;
-  addRecord(v, 'MANUAL');
-  inp.value = '';
-}
-
-document.getElementById('manual-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addManual();
+const idbDel=(store,key)=>new Promise((res,rej)=>{
+  if(!dbOK){res();return;}
+  const t=db.transaction(store,'readwrite');
+  t.objectStore(store).delete(key);
+  t.oncomplete=res;t.onerror=e=>rej(e.target.error);
 });
+const idbGetAll=store=>new Promise((res,rej)=>{
+  if(!dbOK){res([]);return;}
+  const req=db.transaction(store,'readonly').objectStore(store).getAll();
+  req.onsuccess=e=>res(e.target.result);
+  req.onerror=e=>rej(e.target.error);
+});
+const idbClear=store=>new Promise((res,rej)=>{
+  if(!dbOK){res();return;}
+  const t=db.transaction(store,'readwrite');
+  t.objectStore(store).clear();
+  t.oncomplete=res;t.onerror=e=>rej(e.target.error);
+});
+async function cfgGet(key,def){
+  try{const a=await idbGetAll('config');const f=a.find(c=>c.key===key);return f?f.value:def;}
+  catch{return def;}
+}
+const cfgSet=(k,v)=>idbPut('config',{key:k,value:v});
 
-/* ═══════════════════════════════════════════════
-   UI HELPERS
-═══════════════════════════════════════════════ */
-function showFlash(msg, cls) {
-  const el = document.getElementById('flash-result');
-  el.textContent = msg;
-  el.className   = 'flash-result show ' + cls;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.classList.remove('show'), 2000);
+/* ══════════════ ESTADO ══════════════ */
+let records=[],choferes=[],extraCols=[],dupCount=0;
+let guidSet=new Set(),activeChofer='';
+let camOn=false,facing='environment',html5Qr=null;
+let sortCol='timestamp',sortAsc=false,filterCh=null,torchOn=false;
+let lastCode='',lastTime=0;
+
+const today=()=>new Date().toLocaleDateString('es-MX');
+const nowStr=()=>new Date().toLocaleString('es-MX');
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const escA=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+const ini=s=>(s||'?').trim()[0].toUpperCase();
+
+/* ══════════════ DB PILL ══════════════ */
+function setDbPill(s,msg){const el=document.getElementById('db-pill');el.className='db-pill '+s;el.textContent=msg;}
+async function persistRec(rec){
+  setDbPill('saving','💾...');
+  try{await idbPut('records',rec);setDbPill('ok','💾 OK');}
+  catch(e){setDbPill('err','❌ ERR');toast('⚠ Error guardando');}
+}
+const persistCfg=()=>Promise.all([cfgSet('choferes',choferes),cfgSet('extraCols',extraCols),cfgSet('dupCount',dupCount),cfgSet('activeChofer',activeChofer)]);
+
+/* ══════════════ TABS ══════════════ */
+document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
+  document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(t.dataset.tab+'-panel').classList.add('active');
+  if(t.dataset.tab==='data')renderTable();
+  if(t.dataset.tab==='export')renderExport();
+  if(t.dataset.tab==='settings')renderSettings();
+}));
+
+/* ══════════════ MODAL CHOFER ══════════════ */
+function openModal(){
+  const g=document.getElementById('modal-grid');
+  if(!choferes.length){
+    g.innerHTML=`<div class="abox abox-warn">No hay choferes registrados. Agrega uno abajo o ve a ⚙️ Config → Choferes.</div>`;
+  } else {
+    g.innerHTML=choferes.map(c=>{
+      const n=records.filter(r=>r.chofer===c).length;
+      return `<div class="ch-opt" onclick="selectChofer('${escA(c)}')">
+        <div class="ch-opt-av">${ini(c)}</div>
+        <div><div class="ch-opt-name">${esc(c)}</div><div class="ch-opt-sub">${n} guía${n!==1?'s':''} registradas</div></div>
+      </div>`;
+    }).join('');
+  }
+  document.getElementById('modal-bg').classList.add('show');
+}
+function closeModal(){document.getElementById('modal-bg').classList.remove('show');document.getElementById('modal-new-ch').value='';}
+document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===document.getElementById('modal-bg'))closeModal();});
+
+async function selectChofer(name){
+  activeChofer=name;closeModal();updateChoferBox();
+  await cfgSet('activeChofer',name);toast('✓ Chofer: '+name);
+}
+async function modalAdd(){
+  const inp=document.getElementById('modal-new-ch');const v=inp.value.trim();if(!v)return;
+  if(!choferes.includes(v)){choferes.push(v);await persistCfg();}
+  inp.value='';await selectChofer(v);renderSettings();
 }
 
-function updateStats() {
-  const t   = today();
-  const hoy = records.filter(r => r.fecha === t).length;
-  const chs = new Set(records.filter(r => r.chofer).map(r => r.chofer));
-
-  document.getElementById('stat-total').textContent    = records.length;
-  document.getElementById('stat-hoy').textContent      = hoy;
-  document.getElementById('stat-dups').textContent     = dupCount;
-  document.getElementById('stat-choferes').textContent = chs.size;
-  document.getElementById('header-count').textContent  = records.length + ' guías';
-
-  // Mostrar/ocultar barra de backup
-  const ab = parseInt(document.getElementById('set-autobackup').value) || 0;
-  document.getElementById('backup-progress-wrap').style.display = ab > 0 ? 'block' : 'none';
+function updateChoferBox(){
+  const has=!!activeChofer;
+  document.getElementById('box-empty').style.display=has?'none':'block';
+  document.getElementById('box-active').style.display=has?'flex':'none';
+  document.getElementById('btn-sel').style.display=has?'none':'block';
+  if(has){
+    document.getElementById('ch-av').textContent=ini(activeChofer);
+    document.getElementById('ch-nm').textContent=activeChofer;
+    const n=records.filter(r=>r.chofer===activeChofer&&r.fecha===today()).length;
+    document.getElementById('ch-sb').textContent=n+' guía'+(n!==1?'s':'')+' hoy';
+  }
 }
 
-/* ═══════════════════════════════════════════════
-   TABLA
-═══════════════════════════════════════════════ */
-function renderTable() {
-  // Filtros de búsqueda
-  const q = (document.getElementById('search-input').value || '').toLowerCase();
-  let rows = records.filter(r => {
-    if (choferFilter && r.chofer !== choferFilter) return false;
-    if (!q) return true;
-    return r.guia.toLowerCase().includes(q) ||
-           (r.chofer || '').toLowerCase().includes(q) ||
-           (r.fecha  || '').includes(q);
-  });
+/* ══════════════ CÁMARA ══════════════ */
+async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
-  // Ordenar
-  rows.sort((a, b) => {
-    let va = a[sortCol] ?? '', vb = b[sortCol] ?? '';
-    return (va < vb ? -1 : va > vb ? 1 : 0) * (sortAsc ? 1 : -1);
-  });
+async function startCam(){
+  if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
+  try{
+    if(html5Qr){try{await html5Qr.stop();}catch(e){}}
+    html5Qr=new Html5Qrcode('reader');
+    await html5Qr.start(
+      {facingMode:facing},
+      {
+        fps:15,
+        qrbox:{width:270,height:105},
+        aspectRatio:1.7,
+        formatsToSupport:[
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.PDF_417,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.AZTEC
+        ],
+        showTorchButtonIfSupported:false,
+        showZoomSliderIfSupported:false,
+        defaultZoomValueIfSupported:2,
+        experimentalFeatures:{useBarCodeDetectorIfSupported:true}
+      },
+      code=>handleScan(code),
+      _=>{}
+    );
+    camOn=true;
+    document.getElementById('btn-cam').textContent='🔴 PARAR CÁMARA';
+    document.getElementById('btn-cam').className='btn btn-danger';
+    document.getElementById('cam-badge').textContent='🟢 EN VIVO · '+(facing==='environment'?'Trasera':'Frontal');
+  }catch(e){toast('Error cámara: '+e.message);console.error(e);}
+}
+async function stopCam(){
+  if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
+  camOn=false;
+  document.getElementById('btn-cam').textContent='▶ INICIAR CÁMARA';
+  document.getElementById('btn-cam').className='btn btn-primary';
+  document.getElementById('cam-badge').textContent='Cámara apagada';
+}
+async function switchCam(){
+  facing=facing==='environment'?'user':'environment';
+  if(camOn){await stopCam();await startCam();}else toast('Inicia la cámara primero');
+}
+async function toggleTorch(){
+  if(!html5Qr||!camOn){toast('Inicia la cámara primero');return;}
+  try{
+    torchOn=!torchOn;
+    await html5Qr.applyVideoConstraints({advanced:[{torch:torchOn}]});
+    document.getElementById('btn-torch').textContent=torchOn?'💡':'🔦';
+    toast(torchOn?'🔦 Linterna ON':'🔦 Linterna OFF');
+  }catch(e){toast('Linterna no disponible');torchOn=false;}
+}
 
-  // Cabeceras
-  const base = ['guia', 'tipo', 'chofer', 'fecha', 'hora'];
-  const all  = [...base, ...extraCols];
-  document.getElementById('table-head').innerHTML = `<tr>
-    ${all.map(c => `<th onclick="sortBy('${c}')">${c.toUpperCase()}${sortCol === c ? (sortAsc ? ' ↑' : ' ↓') : ''}</th>`).join('')}
+/* ══════════════ ESCANEO ══════════════ */
+function handleScan(code){
+  const now=Date.now();
+  const pause=parseInt(document.getElementById('set-pause').value)||1200;
+  if(code===lastCode&&now-lastTime<pause)return;
+  lastCode=code;lastTime=now;
+  addRecord(code,'BARCODE/QR');
+}
+
+/* ══════════════ AGREGAR REGISTRO ══════════════ */
+async function addRecord(code,type){
+  code=code.trim();if(!code)return;
+  if(document.getElementById('set-dedup').checked&&guidSet.has(code)){
+    dupCount++;showFlash('⚠ DUPLICADO: '+code,'dup');updateStats();cfgSet('dupCount',dupCount);return;
+  }
+  if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
+  const rec={
+    id:Date.now()+'_'+Math.random().toString(36).slice(2,6),
+    guia:code,tipo:type,chofer:activeChofer,
+    fecha:today(),hora:new Date().toLocaleTimeString('es-MX'),timestamp:Date.now()
+  };
+  extraCols.forEach(c=>{rec[c]='';});
+  records.unshift(rec);guidSet.add(code);
+  await persistRec(rec);
+  if(document.getElementById('set-beep').checked)beep();
+  if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(55);
+  showFlash('✓ '+code,'ok');updateStats();updateChoferBox();renderRecents();
+  const ab=parseInt(document.getElementById('set-ab').value)||0;
+  if(ab>0&&records.length%ab===0)exportBackupJSON(true);
+}
+
+function addManual(){
+  const inp=document.getElementById('manual-in');const v=inp.value.trim();if(!v)return;
+  addRecord(v,'MANUAL');inp.value='';
+}
+document.getElementById('manual-in').addEventListener('keydown',e=>{if(e.key==='Enter')addManual();});
+
+/* ══════════════ RECIENTES ══════════════ */
+function renderRecents(){
+  const el=document.getElementById('recents');
+  const last=records.slice(0,6);
+  if(!last.length){el.innerHTML='<div style="color:var(--text2);font-size:0.72rem;padding:4px 0">Aún no hay guías escaneadas</div>';return;}
+  el.innerHTML=last.map(r=>`<div class="recent-item">
+    <div class="recent-code">${esc(r.guia)}</div>
+    <div class="recent-time">${r.hora}</div>
+  </div>`).join('');
+}
+
+/* ══════════════ STATS ══════════════ */
+function updateStats(){
+  const t=today();
+  const chs=new Set(records.filter(r=>r.chofer).map(r=>r.chofer));
+  document.getElementById('st-total').textContent=records.length;
+  document.getElementById('st-hoy').textContent=records.filter(r=>r.fecha===t).length;
+  document.getElementById('st-dups').textContent=dupCount;
+  document.getElementById('st-chof').textContent=chs.size;
+  document.getElementById('hdr-cnt').textContent=records.length+' guías';
+}
+
+/* ══════════════ FLASH ══════════════ */
+function showFlash(msg,cls){
+  const el=document.getElementById('flash');el.textContent=msg;el.className='flash show '+cls;
+  clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),1800);
+}
+
+/* ══════════════ TABLA ══════════════ */
+function renderTable(){
+  const q=(document.getElementById('search-in').value||'').toLowerCase();
+  let rows=records.filter(r=>{
+    if(filterCh&&r.chofer!==filterCh)return false;
+    if(!q)return true;
+    return r.guia.toLowerCase().includes(q)||(r.chofer||'').toLowerCase().includes(q)||(r.fecha||'').includes(q);
+  });
+  rows.sort((a,b)=>{let va=a[sortCol]??'',vb=b[sortCol]??'';return(va<vb?-1:va>vb?1:0)*(sortAsc?1:-1);});
+
+  const chs=[...new Set(records.map(r=>r.chofer).filter(Boolean))];
+  document.getElementById('ch-filter').innerHTML=chs.length
+    ?[`<span class="ch-pill${!filterCh?' active':''}" onclick="setFilter(null)">Todos (${records.length})</span>`,
+      ...chs.map(c=>{const n=records.filter(r=>r.chofer===c).length;
+        return`<span class="ch-pill${filterCh===c?' active':''}" onclick="setFilter('${escA(c)}')">${esc(c)} (${n})</span>`;})
+     ].join(''):'';
+
+  const base=['guia','tipo','chofer','fecha','hora'];
+  const all=[...base,...extraCols];
+  document.getElementById('tbl-head').innerHTML=`<tr>
+    ${all.map(c=>`<th onclick="sortBy('${c}')">${c.toUpperCase()}${sortCol===c?(sortAsc?' ↑':' ↓'):''}</th>`).join('')}
     <th></th></tr>`;
 
-  // Renderizar filtros por chofer
-  renderChoferFilters();
-
-  const body = document.getElementById('table-body');
-  if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="${all.length + 1}">
-      <div class="empty-state"><div class="big">📦</div><div>Sin guías todavía</div></div>
-    </td></tr>`;
-    return;
-  }
-
-  // Virtualización simple: mostrar solo los primeros 300 para no bloquear UI
-  const display = rows.slice(0, 300);
-  body.innerHTML = display.map(r => `<tr>
-    ${base.map(c => c === 'tipo'
-      ? `<td><span class="badge ${badgeClass(r.tipo)}">${r.tipo}</span></td>`
-      : `<td title="${escHtml(r[c] || '')}">${r[c] || '—'}</td>`).join('')}
-    ${extraCols.map(c => `<td><input type="text" value="${escAttr(r[c] || '')}"
-      style="background:none;border:none;color:var(--text);font-family:var(--font);font-size:0.72rem;width:100%;min-width:60px"
+  const body=document.getElementById('tbl-body');
+  if(!rows.length){body.innerHTML=`<tr><td colspan="${all.length+1}"><div class="empty-state"><div style="font-size:2rem">📦</div><div>Sin guías</div></div></td></tr>`;return;}
+  const show=rows.slice(0,300);
+  body.innerHTML=show.map(r=>`<tr>
+    ${base.map(c=>c==='tipo'
+      ?`<td><span style="font-size:0.6rem;background:rgba(0,229,255,.12);color:var(--accent);padding:2px 7px;border-radius:10px">${r.tipo||'—'}</span></td>`
+      :`<td title="${escA(r[c]||'')}">${esc(r[c])||'—'}</td>`).join('')}
+    ${extraCols.map(c=>`<td><input type="text" value="${escA(r[c]||'')}"
+      style="background:none;border:none;color:var(--text);font-family:var(--font);font-size:0.72rem;width:100%;min-width:50px"
       onchange="updateField('${r.id}','${c}',this.value)"></td>`).join('')}
     <td><button class="del-btn" onclick="deleteRecord('${r.id}')">✕</button></td>
   </tr>`).join('');
-
-  if (rows.length > 300) {
-    body.innerHTML += `<tr><td colspan="${all.length + 1}" style="text-align:center;padding:10px;color:var(--text2);font-size:0.7rem">
-      ... mostrando 300 de ${rows.length} (usa el buscador para filtrar) ...</td></tr>`;
-  }
+  if(rows.length>300)body.innerHTML+=`<tr><td colspan="${all.length+1}" style="text-align:center;padding:10px;color:var(--text2);font-size:0.68rem">Mostrando 300/${rows.length} — usa el buscador para filtrar</td></tr>`;
 }
 
-function renderChoferFilters() {
-  const chs = [...new Set(records.map(r => r.chofer).filter(Boolean))];
-  const el  = document.getElementById('filter-by-chofer');
-  if (!chs.length) { el.innerHTML = ''; return; }
-  el.innerHTML = `
-    <span class="chofer-badge" style="cursor:pointer;${!choferFilter ? 'border-color:var(--accent);color:var(--accent)' : ''}" onclick="setChoferFilter(null)">Todos</span>
-    ${chs.map(c => `<span class="chofer-badge" style="cursor:pointer;${choferFilter === c ? 'border-color:var(--accent);color:var(--accent)' : ''}" onclick="setChoferFilter('${escAttr(c)}')">${c}</span>`).join('')}`;
+function setFilter(c){filterCh=c;renderTable();}
+function sortBy(c){if(sortCol===c)sortAsc=!sortAsc;else{sortCol=c;sortAsc=true;}renderTable();}
+async function updateField(id,col,val){const r=records.find(r=>r.id===id);if(r){r[col]=val;await persistRec(r);}}
+async function deleteRecord(id){
+  const r=records.find(r=>r.id===id);if(r)guidSet.delete(r.guia);
+  records=records.filter(r=>r.id!==id);await idbDel('records',id);updateStats();renderTable();
 }
-
-function setChoferFilter(c) { choferFilter = c; renderTable(); }
-
-function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
-function escAttr(s) { return String(s).replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
-
-function badgeClass(t) {
-  if (!t || t === 'MANUAL') return 'badge-man';
-  if (t.includes('QR') || t.includes('AZTEC') || t.includes('DATA')) return 'badge-qr';
-  return 'badge-bar';
-}
-
-function sortBy(col) {
-  if (sortCol === col) sortAsc = !sortAsc;
-  else { sortCol = col; sortAsc = true; }
-  renderTable();
-}
-
-async function updateField(id, col, val) {
-  const r = records.find(r => r.id === id);
-  if (r) { r[col] = val; await persistRecord(r); }
-}
-
-async function deleteRecord(id) {
-  const r = records.find(r => r.id === id);
-  if (r) guidSet.delete(r.guia);
-  records = records.filter(r => r.id !== id);
-  await idbDel('records', id);
-  updateStats();
-  renderTable();
-}
-
-async function clearAll() {
-  if (!confirm('¿Borrar todos los registros?\n\nDescarga un backup primero si necesitas los datos.')) return;
-  records  = [];
-  guidSet  = new Set();
-  dupCount = 0;
+async function clearAll(everything=false){
+  const msg=everything
+    ?'¿Borrar ABSOLUTAMENTE TODO?\nRegistros + choferes + configuración.\nEsto es irreversible.'
+    :'¿Borrar todos los registros?\n\nDescarga un backup antes si necesitas los datos.';
+  if(!confirm(msg))return;
+  records=[];guidSet=new Set();dupCount=0;
   await idbClear('records');
-  await cfgSet('dupCount', 0);
-  updateStats();
-  renderTable();
-  toast('Registros borrados');
+  if(everything){choferes=[];extraCols=[];activeChofer='';await idbClear('config');}
+  else await cfgSet('dupCount',0);
+  updateStats();updateChoferBox();renderTable();renderRecents();
+  if(everything)renderSettings();
+  toast('Borrado ✓');
 }
 
-/* ═══════════════════════════════════════════════
-   SETTINGS
-═══════════════════════════════════════════════ */
-function renderSettings() {
-  document.getElementById('chofer-count').textContent = choferes.length;
-
-  document.getElementById('chofer-list').innerHTML = choferes.map((c, i) => `
+/* ══════════════ SETTINGS ══════════════ */
+function renderSettings(){
+  document.getElementById('ch-count').textContent=choferes.length;
+  document.getElementById('ch-list').innerHTML=choferes.map((c,i)=>`
     <div class="col-item">
-      <input class="input-text" value="${escAttr(c)}"
-        onchange="choferes[${i}]=this.value;syncChoferSelect();persistConfig()">
-      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px" onclick="removeChofer(${i})">✕</button>
+      <input class="input-text" value="${escA(c)}" onchange="choferes[${i}]=this.value;persistCfg()" style="padding:7px 10px;font-size:0.78rem">
+      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px;font-size:0.75rem" onclick="removeChofer(${i})">✕</button>
     </div>`).join('');
-
-  document.getElementById('col-list').innerHTML = extraCols.map((c, i) => `
+  document.getElementById('col-list').innerHTML=extraCols.map((c,i)=>`
     <div class="col-item">
-      <input class="input-text" value="${escAttr(c)}" onchange="extraCols[${i}]=this.value;persistConfig()">
-      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px" onclick="removeColumn(${i})">✕</button>
+      <input class="input-text" value="${escA(c)}" onchange="extraCols[${i}]=this.value;persistCfg()" style="padding:7px 10px;font-size:0.78rem">
+      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px;font-size:0.75rem" onclick="removeCol(${i})">✕</button>
     </div>`).join('');
-
-  const usedKB = Math.round(records.length * 0.15); // estimado
-  document.getElementById('security-status').innerHTML = `
-    <div class="alert-box alert-success">
-      ✅ <strong>IndexedDB ${dbAvailable ? 'ACTIVO' : 'NO DISPONIBLE'}</strong><br>
-      Refrescar o cerrar la página <strong>NO borra los datos</strong>.<br>
-      ~${usedKB} KB estimados · ${records.length} registros · ${choferes.length} choferes
+  document.getElementById('db-info').innerHTML=`
+    <div class="abox ${dbOK?'abox-ok':'abox-err'}">
+      ${dbOK?'✅ IndexedDB ACTIVO — Datos protegidos':'❌ IndexedDB no disponible'}<br>
+      Cerrar o recargar la página <strong>NO borra los datos</strong>.<br>
+      ${records.length} registros · ${choferes.length} choferes
     </div>
-    ${!dbAvailable ? `<div class="alert-box alert-danger">❌ DB no disponible. Los datos están solo en RAM. Exporta ahora.</div>` : ''}
-    <div class="alert-box alert-warn">
-      ⚠ <strong>Sí puede borrar datos:</strong> "Borrar datos del sitio" en ajustes del navegador, modo incógnito, o actualizar Chrome con almacenamiento lleno.<br>
-      <strong>Descarga Backup JSON periódicamente.</strong>
-    </div>`;
+    <div class="abox abox-warn">⚠ Solo puede borrar datos: "Borrar datos del sitio" en ajustes del navegador.<br>Descarga <strong>Backup JSON</strong> al terminar el día.</div>`;
 }
-
-async function addChofer() {
-  const inp = document.getElementById('new-chofer-input');
-  const v   = inp.value.trim();
-  if (!v) return;
-  if (!choferes.includes(v)) choferes.push(v);
-  inp.value = '';
-  syncChoferSelect();
-  renderSettings();
-  await persistConfig();
-  toast('✓ Chofer: ' + v);
+async function addChofer(){
+  const inp=document.getElementById('new-ch-in');const v=inp.value.trim();if(!v)return;
+  if(!choferes.includes(v))choferes.push(v);inp.value='';
+  await persistCfg();renderSettings();toast('✓ '+v);
 }
-
-async function bulkAddChoferes() {
-  const ta    = document.getElementById('bulk-choferes');
-  const lines = ta.value.split('\n').map(l => l.trim()).filter(Boolean);
-  let added   = 0;
-  lines.forEach(l => { if (!choferes.includes(l)) { choferes.push(l); added++; } });
-  ta.value = '';
-  syncChoferSelect();
-  renderSettings();
-  await persistConfig();
-  toast(added + ' choferes agregados ✓');
+async function bulkChoferes(){
+  const ta=document.getElementById('bulk-ch');
+  const lines=ta.value.split('\n').map(l=>l.trim()).filter(Boolean);
+  let n=0;lines.forEach(l=>{if(!choferes.includes(l)){choferes.push(l);n++;}});
+  ta.value='';await persistCfg();renderSettings();toast(n+' choferes agregados ✓');
 }
-
-async function removeChofer(i) {
-  choferes.splice(i, 1);
-  syncChoferSelect();
-  renderSettings();
-  await persistConfig();
+async function removeChofer(i){choferes.splice(i,1);await persistCfg();renderSettings();}
+async function addCol(){
+  const inp=document.getElementById('new-col-in');const v=inp.value.trim().replace(/\s+/g,'_').toLowerCase();if(!v)return;
+  extraCols.push(v);inp.value='';records.forEach(r=>{if(!(v in r))r[v]='';});await persistCfg();renderSettings();
 }
+async function removeCol(i){const col=extraCols[i];extraCols.splice(i,1);records.forEach(r=>delete r[col]);await persistCfg();renderSettings();}
 
-function syncChoferSelect() {
-  const sel = document.getElementById('chofer-select');
-  const cur = sel.value;
-  sel.innerHTML = '<option value="">— Sin asignar —</option>' +
-    choferes.map(c => `<option value="${escAttr(c)}"${c === cur ? ' selected' : ''}>${c}</option>`).join('');
-}
-
-async function addColumn() {
-  const inp = document.getElementById('new-col-input');
-  const v   = inp.value.trim().replace(/\s+/g, '_').toLowerCase();
-  if (!v) return;
-  extraCols.push(v);
-  inp.value = '';
-  records.forEach(r => { if (!(v in r)) r[v] = ''; });
-  renderSettings();
-  await persistConfig();
-}
-
-async function removeColumn(i) {
-  const col = extraCols[i];
-  extraCols.splice(i, 1);
-  records.forEach(r => delete r[col]);
-  renderSettings();
-  await persistConfig();
-}
-
-/* ═══════════════════════════════════════════════
-   LINTERNA
-═══════════════════════════════════════════════ */
-async function toggleTorch() {
-  if (!stream) { toast('Inicia la cámara primero'); return; }
-  const track = stream.getVideoTracks()[0];
-  const caps  = track.getCapabilities ? track.getCapabilities() : {};
-  if (!caps.torch) { toast('Linterna no disponible en este dispositivo'); return; }
-  torchOn = !torchOn;
-  await track.applyConstraints({ advanced: [{ torch: torchOn }] });
-  document.getElementById('fab-torch').classList.toggle('on', torchOn);
-  toast(torchOn ? '🔦 Linterna ON' : '🔦 Linterna OFF');
-}
-
-/* ═══════════════════════════════════════════════
-   EXPORTS
-═══════════════════════════════════════════════ */
-const getHdr = () => ['guia', 'tipo', 'chofer', 'fecha', 'hora', ...extraCols];
-const dl = (name, content, type) => {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type }));
-  a.download = name;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+/* ══════════════ EXPORT ══════════════ */
+const getHdr=()=>['guia','tipo','chofer','fecha','hora',...extraCols];
+const dl=(name,content,type)=>{
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));
+  a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
 };
 
-function exportExcel() {
-  if (!records.length) { toast('No hay datos'); return; }
-  const wb  = XLSX.utils.book_new();
-  const hdr = getHdr();
+function renderExport(){
+  document.getElementById('exp-cnt').textContent=records.length;
+  const chs=new Set(records.map(r=>r.chofer).filter(Boolean));
+  document.getElementById('exp-chs').textContent=chs.size;
+  const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';chMap[c]=(chMap[c]||0)+1;});
+  document.getElementById('ch-summary').innerHTML=Object.keys(chMap).length
+    ?Object.entries(chMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
+        <span>👤 ${esc(c)}</span><span style="color:var(--accent);font-weight:700">${n} guías</span></div>`).join('')
+    :'<div style="color:var(--text2);font-size:0.75rem;padding:8px 0">Sin datos</div>';
+}
 
-  // Hoja "Todas"
-  const wsAll = XLSX.utils.aoa_to_sheet([hdr, ...records.map(r => hdr.map(h => r[h] || ''))]);
-  wsAll['!cols'] = hdr.map(() => ({ wch: 24 }));
-  XLSX.utils.book_append_sheet(wb, wsAll, 'Todas las Guías');
-
-  // Hoja por chofer
-  const chMap = {};
-  records.forEach(r => {
-    const ch = r.chofer || 'Sin asignar';
-    if (!chMap[ch]) chMap[ch] = [];
-    chMap[ch].push(r);
+function exportExcel(){
+  if(!records.length){toast('No hay datos');return;}
+  const wb=XLSX.utils.book_new();
+  const hdr=getHdr();
+  // Hoja global
+  const wsAll=XLSX.utils.aoa_to_sheet([hdr.map(h=>h.toUpperCase()),...records.map(r=>hdr.map(h=>r[h]||''))]);
+  wsAll['!cols']=hdr.map(()=>({wch:26}));
+  XLSX.utils.book_append_sheet(wb,wsAll,'TODAS LAS GUÍAS');
+  // Hoja por chofer con numeración
+  const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';if(!chMap[c])chMap[c]=[];chMap[c].push(r);});
+  Object.entries(chMap).forEach(([ch,rows])=>{
+    const chHdr=['N°','GUÍA','TIPO','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
+    const data=rows.map((r,i)=>[i+1,r.guia,r.tipo||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')]);
+    const ws=XLSX.utils.aoa_to_sheet([chHdr,...data]);
+    ws['!cols']=chHdr.map(()=>({wch:24}));
+    XLSX.utils.book_append_sheet(wb,ws,ch.substring(0,31));
   });
-  Object.entries(chMap).forEach(([ch, rows]) => {
-    const ws = XLSX.utils.aoa_to_sheet([hdr, ...rows.map(r => hdr.map(h => r[h] || ''))]);
-    ws['!cols'] = hdr.map(() => ({ wch: 24 }));
-    XLSX.utils.book_append_sheet(wb, ws, ch.substring(0, 31));
-  });
-
   // Hoja resumen
-  const sum = [['Chofer', 'Total guías', 'Fechas activas']];
-  Object.entries(chMap).forEach(([ch, rows]) => {
-    sum.push([ch, rows.length, [...new Set(rows.map(r => r.fecha))].join(', ')]);
-  });
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(sum), 'Resumen');
-  XLSX.writeFile(wb, `guias_${today().replace(/\//g, '-')}.xlsx`);
+  const sumData=Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,rows])=>[ch,rows.length,[...new Set(rows.map(r=>r.fecha))].join(', ')]);
+  const wsSum=XLSX.utils.aoa_to_sheet([['CHOFER','TOTAL GUÍAS','FECHAS'],...sumData]);
+  wsSum['!cols']=[{wch:30},{wch:14},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,wsSum,'RESUMEN');
+  XLSX.writeFile(wb,`guias_${today().replace(/\//g,'-')}.xlsx`);
   toast('Excel descargado ✓');
 }
-
-function exportCSV() {
-  if (!records.length) { toast('No hay datos'); return; }
-  const hdr = getHdr();
-  const rows = [hdr.join(','), ...records.map(r =>
-    hdr.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(',')
-  )];
-  dl(`guias_${today().replace(/\//g, '-')}.csv`, '\uFEFF' + rows.join('\n'), 'text/csv;charset=utf-8');
-  toast('CSV descargado ✓');
+function exportCSV(){
+  if(!records.length){toast('No hay datos');return;}
+  const hdr=getHdr();
+  dl(`guias_${today().replace(/\//g,'-')}.csv`,
+    '\uFEFF'+[hdr.join(','),...records.map(r=>hdr.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n'),
+    'text/csv;charset=utf-8');toast('CSV descargado ✓');
 }
-
-function exportJSON() {
-  if (!records.length) { toast('No hay datos'); return; }
-  dl(`guias_${today().replace(/\//g, '-')}.json`, JSON.stringify(records, null, 2), 'application/json');
-  toast('JSON descargado ✓');
-}
-
-function exportTXT() {
-  if (!records.length) { toast('No hay datos'); return; }
-  dl(`guias_${today().replace(/\//g, '-')}.txt`, records.map(r => r.guia).join('\n'), 'text/plain');
-  toast('TXT descargado ✓');
-}
-
-function exportHTML() {
-  if (!records.length) { toast('No hay datos'); return; }
-  const hdr = getHdr();
-  dl(`guias_${today().replace(/\//g, '-')}.html`,
+function exportJSON(){if(!records.length){toast('No hay datos');return;}dl(`guias_${today().replace(/\//g,'-')}.json`,JSON.stringify(records,null,2),'application/json');toast('JSON ✓');}
+function exportTXT(){if(!records.length){toast('No hay datos');return;}dl(`guias_${today().replace(/\//g,'-')}.txt`,records.map(r=>r.guia).join('\n'),'text/plain');toast('TXT ✓');}
+function exportHTML(){
+  if(!records.length){toast('No hay datos');return;}
+  const hdr=getHdr();
+  dl(`guias_${today().replace(/\//g,'-')}.html`,
     `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Guías ${today()}</title>
-<style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px}
-h2{margin-bottom:16px}table{border-collapse:collapse;width:100%}
-th{background:#0a0e1a;color:#00e5ff;padding:10px 8px;text-align:left}
+<style>body{font-family:Arial;padding:20px;font-size:13px}h2{margin-bottom:16px}
+table{border-collapse:collapse;width:100%}th{background:#0a0e1a;color:#00e5ff;padding:10px 8px;text-align:left}
 td{padding:7px 8px;border-bottom:1px solid #eee}</style></head>
 <body><h2>📦 Guías — ${today()} — ${records.length} registros — ${nowStr()}</h2>
-<table><thead><tr>${hdr.map(h => `<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
-<tbody>${records.map(r => `<tr>${hdr.map(h => `<td>${r[h] || ''}</td>`).join('')}</tr>`).join('')}
-</tbody></table></body></html>`, 'text/html');
-  toast('HTML descargado ✓');
+<table><thead><tr>${hdr.map(h=>`<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
+<tbody>${records.map(r=>`<tr>${hdr.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`,'text/html');
+  toast('HTML ✓');
+}
+async function copyClip(){
+  if(!records.length){toast('No hay datos');return;}
+  const hdr=getHdr();
+  await navigator.clipboard.writeText([hdr.join('\t'),...records.map(r=>hdr.map(h=>r[h]||'').join('\t'))].join('\n'));
+  toast('Copiado ✓');
+}
+function exportBackupJSON(silent=false){
+  const data={version:4,exported:nowStr(),records,choferes,extraCols,dupCount,activeChofer};
+  dl(`backup_${Date.now()}.json`,JSON.stringify(data,null,2),'application/json');
+  if(!silent)toast('Backup ✓');
+}
+async function importBackup(event){
+  const file=event.target.files[0];if(!file)return;
+  try{
+    const data=JSON.parse(await file.text());
+    if(!data.records)throw new Error('Formato inválido');
+    if(!confirm(`Importar ${data.records.length} registros?\nExportado: ${data.exported||'?'}\n⚠ Reemplaza los datos actuales.`))return;
+    records=data.records||[];choferes=data.choferes||[];extraCols=data.extraCols||[];
+    dupCount=data.dupCount||0;activeChofer=data.activeChofer||'';
+    guidSet=new Set(records.map(r=>r.guia));
+    await idbClear('records');for(const r of records)await idbPut('records',r);
+    await persistCfg();updateStats();updateChoferBox();renderTable();renderRecents();
+    toast(records.length+' guías restauradas ✓');
+  }catch(e){toast('Error: '+e.message);}
+  event.target.value='';
 }
 
-async function copyClipboard() {
-  if (!records.length) { toast('No hay datos'); return; }
-  const hdr = getHdr();
-  const txt = [hdr.join('\t'), ...records.map(r => hdr.map(h => r[h] || '').join('\t'))].join('\n');
-  await navigator.clipboard.writeText(txt);
-  toast('Copiado al portapapeles ✓');
+/* ══════════════ BEEP ══════════════ */
+let actx=null;
+function beep(){
+  try{
+    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain();
+    o.connect(g);g.connect(actx.destination);o.type='square';o.frequency.value=1400;
+    g.gain.setValueAtTime(0.07,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.09);
+    o.start();o.stop(actx.currentTime+0.09);
+  }catch(e){}
 }
 
-function exportBackupJSON(silent = false) {
-  const data = { version: 3, exported: nowStr(), records, choferes, extraCols, dupCount };
-  dl(`backup_guias_${Date.now()}.json`, JSON.stringify(data, null, 2), 'application/json');
-  if (!silent) toast('Backup descargado ✓');
-}
-
-async function importBackup(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  try {
-    const text = await file.text();
-    const data = JSON.parse(text);
-    if (!data.records) throw new Error('Formato inválido — no se encontró "records"');
-    if (!confirm(
-      `Importar ${data.records.length} registros y ${(data.choferes || []).length} choferes?\n\n` +
-      `Exportado: ${data.exported || 'desconocido'}\n\n` +
-      `⚠ Esto REEMPLAZA los datos actuales.`
-    )) return;
-
-    records   = data.records   || [];
-    choferes  = data.choferes  || [];
-    extraCols = data.extraCols || [];
-    dupCount  = data.dupCount  || 0;
-
-    // Reconstruir guidSet
-    guidSet = new Set(records.map(r => r.guia));
-
-    await idbClear('records');
-    for (const r of records) await idbPut('records', r);
-    await persistConfig();
-
-    syncChoferSelect();
-    updateStats();
-    renderTable();
-    toast(records.length + ' guías restauradas ✓');
-  } catch(e) {
-    toast('Error importando: ' + e.message);
-  }
-  event.target.value = '';
-}
-
-function updateExportPanel() {
-  document.getElementById('export-count').textContent = records.length;
-  const chMap = {};
-  records.forEach(r => {
-    const ch = r.chofer || 'Sin asignar';
-    chMap[ch] = (chMap[ch] || 0) + 1;
-  });
-  document.getElementById('chofer-summary').innerHTML =
-    Object.keys(chMap).length
-    ? Object.entries(chMap).sort((a, b) => b[1] - a[1]).map(([ch, n]) =>
-        `<div style="display:flex;justify-content:space-between;align-items:center;
-          padding:9px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
-          <span>👤 ${escHtml(ch)}</span>
-          <span style="color:var(--accent);font-weight:700">${n} guías</span>
-        </div>`).join('')
-    : '<div style="color:var(--text2);font-size:0.75rem;padding:10px 0">Sin datos todavía</div>';
-}
-
-async function clearStorageAll() {
-  if (!confirm(
-    '¿Borrar ABSOLUTAMENTE TODO?\n\n' +
-    'Registros + choferes + configuración.\n' +
-    'Esto es IRREVERSIBLE. ¿Seguro?'
-  )) return;
-  await idbClear('records');
-  await idbClear('config');
-  records   = [];
-  choferes  = [];
-  extraCols = [];
-  dupCount  = 0;
-  guidSet   = new Set();
-  syncChoferSelect();
-  updateStats();
-  renderTable();
-  renderSettings();
-  toast('Todo borrado');
-}
-
-/* ═══════════════════════════════════════════════
-   BEEP
-═══════════════════════════════════════════════ */
-let audioCtx = null;
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-function beep() {
-  try {
-    const c = getAudioCtx();
-    const o = c.createOscillator();
-    const g = c.createGain();
-    o.connect(g);
-    g.connect(c.destination);
-    o.type = 'square';
-    o.frequency.value = 1400;
-    g.gain.setValueAtTime(0.08, c.currentTime);
-    g.gain.exponentialRampToValueAtTime(0.001, c.currentTime + 0.1);
-    o.start();
-    o.stop(c.currentTime + 0.1);
-  } catch(e) {}
-}
-
-/* ═══════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════ */
+/* ══════════════ TOAST ══════════════ */
 let tT;
-function toast(msg) {
-  const el = document.getElementById('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(tT);
-  tT = setTimeout(() => el.classList.remove('show'), 2400);
+function toast(msg){
+  const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
+  clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),2400);
 }
 
-/* ═══════════════════════════════════════════════
-   INIT
-═══════════════════════════════════════════════ */
-async function init() {
-  try {
+/* ══════════════ INIT ══════════════ */
+async function init(){
+  try{
     await openDB();
-    records   = await idbGetAll('records');
-    records.sort((a, b) => b.timestamp - a.timestamp);
-    choferes  = await cfgGet('choferes',  []);
-    extraCols = await cfgGet('extraCols', []);
-    dupCount  = await cfgGet('dupCount',  0);
-
-    // Construir guidSet para dedup rápido
-    guidSet = new Set(records.map(r => r.guia));
-
-    setDbStatus('ok', '💾 OK');
-    syncChoferSelect();
-    updateStats();
-
-    if (records.length) toast('✓ ' + records.length + ' guías en memoria');
-    else toast('✓ App lista');
-
-  } catch(e) {
-    // DB falló — seguir en modo RAM con advertencia visible
-    dbAvailable = false;
-    setDbStatus('err', '❌ DB ERROR');
-    document.getElementById('db-error-banner').style.display = 'block';
-    console.error('DB init error:', e);
-    toast('⚠ Base de datos no disponible: ' + e.message);
+    records=await idbGetAll('records');records.sort((a,b)=>b.timestamp-a.timestamp);
+    choferes=await cfgGet('choferes',[]);extraCols=await cfgGet('extraCols',[]);
+    dupCount=await cfgGet('dupCount',0);activeChofer=await cfgGet('activeChofer','');
+    guidSet=new Set(records.map(r=>r.guia));
+    setDbPill('ok','💾 OK');
+    if(records.length)toast('✓ '+records.length+' guías cargadas');
+    else toast('✓ App lista — selecciona un chofer');
+  }catch(e){
+    dbOK=false;setDbPill('err','❌ DB ERR');
+    document.getElementById('db-banner').style.display='block';
+    toast('⚠ DB no disponible: '+e.message);
   }
+  updateStats();updateChoferBox();renderRecents();
 }
-
-window.addEventListener('DOMContentLoaded', init);
-
-// Guardar config cuando se cierra/recarga la página
-window.addEventListener('beforeunload', () => {
-  if (dbAvailable) persistConfig();
-});
-
-// Visibilidad: cuando el usuario vuelve a la app, verificar que la DB sigue activa
-document.addEventListener('visibilitychange', () => {
-  if (!document.hidden && dbAvailable && db) {
-    // Test rápido de lectura
-    try { db.transaction('config', 'readonly'); }
-    catch(e) { setDbStatus('err', '❌ DB ERROR'); toast('⚠ DB cerrada, exporta los datos'); }
-  }
-});
+window.addEventListener('DOMContentLoaded',init);
+window.addEventListener('beforeunload',()=>{if(dbOK)persistCfg();});
 </script>
 </body>
 </html>
