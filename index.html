@@ -206,10 +206,7 @@ header {
 .btn-secondary {background:var(--surface);color:var(--text);border:1.5px solid var(--border)}
 .btn-orange {background:var(--accent2);color:#fff;box-shadow:0 3px 12px rgba(249,115,22,.35)}
 .btn-green {background:var(--success);color:#fff;box-shadow:0 3px 12px rgba(22,163,74,.35)}
-.btn-whatsapp {
-  background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;
-  box-shadow:0 3px 14px rgba(37,211,102,.4);
-}
+/* WHATSAPP STYLE REMOVED */
 .btn-icon {font-size:1.1rem}
 
 /* ── FLASH ── */
@@ -293,22 +290,21 @@ tr:hover td {background:var(--accent-light)}
 .exp-icon {font-size:2.2rem;margin-bottom:6px}
 .exp-name {font-size:0.78rem;font-weight:800;color:var(--text)}
 .exp-desc {font-size:0.6rem;color:var(--text2);margin-top:3px}
-.exp-card.whatsapp-card {border-color:#25d366;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
-.exp-card.whatsapp-card .exp-name {color:#16a34a}
-
-/* WHATSAPP BIG BUTTON */
-.wa-big {
-  background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;
+/* ── EXPORT BIG BUTTON ── */
+.manifest-big {
+  background:linear-gradient(135deg,#1e40af,#1d4ed8);color:#fff;
   border-radius:var(--r);padding:18px;margin-bottom:12px;
   display:flex;align-items:center;gap:14px;cursor:pointer;
-  box-shadow:0 4px 20px rgba(37,211,102,.35);transition:all .15s;
+  box-shadow:0 4px 20px rgba(30,64,175,.35);transition:all .15s;
   border:none;width:100%;font-family:var(--font);text-align:left;
 }
-.wa-big:active {transform:scale(.97)}
-.wa-big-icon {font-size:2.4rem;flex-shrink:0}
-.wa-big-text {flex:1}
-.wa-big-title {font-size:1rem;font-weight:800;margin-bottom:3px}
-.wa-big-sub {font-size:0.72rem;opacity:.9}
+.manifest-big:active{transform:scale(.97)}
+.manifest-big-icon{font-size:2.4rem;flex-shrink:0}
+.manifest-big-text{flex:1}
+.manifest-big-title{font-size:1rem;font-weight:800;margin-bottom:3px}
+.manifest-big-sub{font-size:0.72rem;opacity:.9}
+
+/* WHATSAPP STYLES REMOVED */
 
 /* ── SETTINGS ── */
 .sec {background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
@@ -453,22 +449,12 @@ tr:hover td {background:var(--accent-light)}
     📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes listos para exportar
   </div>
 
-  <!-- WHATSAPP DESTACADO -->
-  <button class="wa-big" onclick="sendWhatsApp()">
-    <div class="wa-big-icon">📲</div>
-    <div class="wa-big-text">
-      <div class="wa-big-title">Enviar Excel por WhatsApp</div>
-      <div class="wa-big-sub">Comparte el archivo Excel directo a WhatsApp (en móvil) o descárgalo</div>
-    </div>
-    <span style="font-size:1.4rem;opacity:.8">›</span>
-  </button>
-
   <!-- MANIFIESTO DESTACADO -->
-  <button class="wa-big" style="background:linear-gradient(135deg,#1e40af,#1d4ed8);box-shadow:0 4px 20px rgba(30,64,175,.35)" onclick="openManifiestoModal()">
-    <div class="wa-big-icon">🖨️</div>
-    <div class="wa-big-text">
-      <div class="wa-big-title">Imprimir Manifiesto</div>
-      <div class="wa-big-sub">Manifiesto con guías, totales y firma del chofer</div>
+  <button class="manifest-big" onclick="openManifiestoModal()">
+    <div class="manifest-big-icon">🖨️</div>
+    <div class="manifest-big-text">
+      <div class="manifest-big-title">Imprimir Manifiesto</div>
+      <div class="manifest-big-sub">Manifiesto con guías, totales y firma del chofer</div>
     </div>
     <span style="font-size:1.4rem;opacity:.8">›</span>
   </button>
@@ -573,6 +559,27 @@ tr:hover td {background:var(--accent-light)}
       </div>
     </div>
     <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL REASIGNAR GUÍA ══════ -->
+<div class="modal-bg" id="reasign-modal-bg">
+  <div class="modal" style="border-top-color:var(--warn)">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:var(--warn)">⚠️ Guía en otro chofer</div>
+    <div style="background:var(--warn-light);border:1.5px solid #fcd34d;border-radius:var(--r-sm);padding:14px;margin-bottom:16px">
+      <div style="font-size:0.95rem;font-weight:800;font-family:var(--mono);color:var(--text);margin-bottom:10px;word-break:break-all" id="reasign-guia">—</div>
+      <div style="font-size:0.78rem;line-height:1.8">
+        Esta guía ya está registrada en:<br>
+        <strong style="color:var(--danger)">👤 <span id="reasign-from">—</span></strong><br><br>
+        ¿La quieres quitar de ahí y asignar a:<br>
+        <strong style="color:var(--success)">👤 <span id="reasign-to">—</span></strong>?
+      </div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-green" style="flex:1" onclick="confirmReasign()">✓ SÍ, REASIGNAR</button>
+      <button class="btn btn-secondary" style="flex:1" onclick="closeReasignModal()">✕ CANCELAR</button>
+    </div>
   </div>
 </div>
 
@@ -870,18 +877,31 @@ function handleScan(code){
 async function addRecord(code,type){
   code=code.trim();if(!code)return;
 
-  // DUPLICADO
+  // DUPLICADO — verificar si ya existe
   if(document.getElementById('set-dedup').checked&&guidSet.has(code)){
-    dupCount++;
-    showFlash('⚠ DUPLICADO: '+code,'dup');
-    updateStats();
-    cfgSet('dupCount',dupCount);
-    if(document.getElementById('set-beep').checked)beepError();
-    if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([80,40,80]);
+    const existing=records.find(r=>r.guia===code);
+    const existingChofer=existing?existing.chofer:'otro chofer';
+
+    // Si ya está en el mismo chofer activo, es duplicado real
+    if(existing&&existing.chofer===activeChofer){
+      dupCount++;
+      showFlash('⚠ DUPLICADO: '+code,'dup');
+      updateStats();
+      cfgSet('dupCount',dupCount);
+      if(document.getElementById('set-beep').checked)beepError();
+      if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([80,40,80]);
+      return;
+    }
+
+    // Está en otro chofer — mostrar modal de reasignación
+    showReasignModal(code, type, existingChofer);
     return;
   }
   if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
+  await doAddRecord(code,type);
+}
 
+async function doAddRecord(code,type){
   const rec={
     id:Date.now()+'_'+Math.random().toString(36).slice(2,6),
     guia:code,tipo:type,chofer:activeChofer,
@@ -891,7 +911,7 @@ async function addRecord(code,type){
   records.unshift(rec);
   guidSet.add(code);
 
-  await persistRec(rec); // ← INMEDIATO
+  await persistRec(rec);
 
   if(document.getElementById('set-beep').checked)beepOK();
   if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(60);
@@ -900,6 +920,36 @@ async function addRecord(code,type){
 
   const ab=parseInt(document.getElementById('set-ab').value)||0;
   if(ab>0&&records.length%ab===0)exportBackupJSON(true);
+}
+
+/* Modal de reasignación de guía */
+let reasignPending={code:'',type:''};
+function showReasignModal(code,type,fromChofer){
+  reasignPending={code,type};
+  document.getElementById('reasign-guia').textContent=code;
+  document.getElementById('reasign-from').textContent=fromChofer||'Sin asignar';
+  document.getElementById('reasign-to').textContent=activeChofer||'chofer actual';
+  document.getElementById('reasign-modal-bg').classList.add('show');
+  if(document.getElementById('set-beep').checked)beepError();
+  if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([80,40,80]);
+}
+function closeReasignModal(){
+  document.getElementById('reasign-modal-bg').classList.remove('show');
+  reasignPending={code:'',type:''};
+}
+async function confirmReasign(){
+  const {code,type}=reasignPending;
+  if(!code){closeReasignModal();return;}
+  // Quitar del chofer anterior
+  const idx=records.findIndex(r=>r.guia===code);
+  if(idx!==-1){
+    await idbDel('records',records[idx].id);
+    records.splice(idx,1);
+    guidSet.delete(code);
+  }
+  closeReasignModal();
+  await doAddRecord(code,type);
+  toast(`✓ Guía reasignada a ${activeChofer}`);
 }
 
 function addManual(){
@@ -1112,65 +1162,6 @@ function exportExcel(){
 }
 
 /* ══════════════════════════════════════
-   WHATSAPP — Web Share API (adjunta el archivo real en móvil)
-   Si no está disponible, descarga Excel + abre WhatsApp con texto
-══════════════════════════════════════ */
-async function sendWhatsApp(){
-  if(!records.length){toast('No hay datos para exportar');return;}
-
-  // Construir mensaje de resumen
-  const resumen=
-    `📦 *Guías escaneadas* — ${today()}\n\n`+
-    `• Total: *${records.length}* guías\n`+
-    `• Choferes: *${new Set(records.map(r=>r.chofer).filter(Boolean)).size}*\n\n`+
-    Object.entries(records.reduce((acc,r)=>{const c=r.chofer||'Sin asignar';acc[c]=(acc[c]||0)+1;return acc;},{}))
-      .sort((a,b)=>b[1]-a[1])
-      .map(([c,n])=>`👤 ${c}: *${n}*`)
-      .join('\n');
-
-  // Intentar Web Share API con archivo (funciona en Android/iOS Chrome/Safari)
-  if(navigator.canShare){
-    try{
-      // Generar el archivo Excel como blob
-      const wb=XLSX.utils.book_new();
-      const {matrix,chMap,chNames}=buildExcelChoferColumns();
-      const ws1=XLSX.utils.aoa_to_sheet(matrix);
-      ws1['!cols']=chNames.map(()=>({wch:22}));
-      XLSX.utils.book_append_sheet(wb,ws1,'Guías por Chofer');
-      const hdr=['GUÍA','TIPO','CHOFER','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
-      const ws2=XLSX.utils.aoa_to_sheet([hdr,...records.map(r=>[r.guia,r.tipo||'',r.chofer||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')])]);
-      ws2['!cols']=hdr.map(()=>({wch:24}));
-      XLSX.utils.book_append_sheet(wb,ws2,'Detalle Completo');
-      const wbOut=XLSX.write(wb,{bookType:'xlsx',type:'array'});
-      const blob=new Blob([wbOut],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-      const fileName=`guias_${today().replace(/\//g,'-')}.xlsx`;
-      const file=new File([blob],fileName,{type:blob.type});
-
-      if(navigator.canShare({files:[file]})){
-        await navigator.share({
-          title:'Guías escaneadas',
-          text:resumen,
-          files:[file]
-        });
-        toast('✓ Compartido por WhatsApp');
-        return;
-      }
-    }catch(e){
-      if(e.name==='AbortError')return; // Usuario canceló
-      // Si falla, caer al método alternativo
-    }
-  }
-
-  // Método alternativo: descargar Excel + abrir WhatsApp con texto
-  exportExcel();
-  setTimeout(()=>{
-    const msg=encodeURIComponent(resumen+'\n\n_Adjunta el archivo Excel descargado_');
-    window.open(`https://wa.me/?text=${msg}`,'_blank');
-    toast('Excel descargado — adjúntalo manualmente en WhatsApp');
-  },1200);
-}
-
-/* ══════════════════════════════════════
    COPIAR SOLO GUÍAS
 ══════════════════════════════════════ */
 async function copyGuiasOnly(){
@@ -1363,6 +1354,9 @@ function closeManifiestoModal(){
 }
 document.getElementById('manifest-modal-bg').addEventListener('click',e=>{
   if(e.target===document.getElementById('manifest-modal-bg'))closeManifiestoModal();
+});
+document.getElementById('reasign-modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('reasign-modal-bg'))closeReasignModal();
 });
 
 function getManifestRecords(){
