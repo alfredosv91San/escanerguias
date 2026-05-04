@@ -940,15 +940,28 @@ function closeReasignModal(){
 async function confirmReasign(){
   const {code,type}=reasignPending;
   if(!code){closeReasignModal();return;}
-  // Quitar del chofer anterior
+
+  // Buscar el registro existente
   const idx=records.findIndex(r=>r.guia===code);
   if(idx!==-1){
-    await idbDel('records',records[idx].id);
+    const oldRec=records[idx];
+    // Actualizar el chofer directamente en el registro existente (mismo ID)
+    oldRec.chofer=activeChofer;
+    oldRec.fecha=today();
+    oldRec.hora=new Date().toLocaleTimeString('es-MX');
+    oldRec.timestamp=Date.now();
+    // Mover al frente del array
     records.splice(idx,1);
-    guidSet.delete(code);
+    records.unshift(oldRec);
+    // Guardar en IndexedDB (put actualiza por keyPath id)
+    await persistRec(oldRec);
   }
+
   closeReasignModal();
-  await doAddRecord(code,type);
+  if(document.getElementById('set-beep').checked)beepOK();
+  if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(60);
+  showFlash('✓ '+code,'ok');
+  updateStats();updateChoferBox();renderRecents();
   toast(`✓ Guía reasignada a ${activeChofer}`);
 }
 
