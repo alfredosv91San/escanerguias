@@ -5,231 +5,418 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#0a0e1a">
+<meta name="theme-color" content="#1a1f2e">
 <title>EscanerGuías</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
-:root{
-  --bg:#0a0e1a;--surface:#111827;--surface2:#1c2536;
-  --accent:#00e5ff;--accent2:#ff6b35;--success:#00d97e;
-  --danger:#ff4757;--warn:#ffd32a;--text:#e8eaf6;--text2:#8892a4;
-  --border:rgba(0,229,255,0.15);--r:12px;--font:'Courier New',monospace;
+:root {
+  --bg: #f0f4ff;
+  --surface: #ffffff;
+  --surface2: #e8eeff;
+  --surface3: #d8e4ff;
+  --accent: #2563eb;
+  --accent-light: #dbeafe;
+  --accent2: #f97316;
+  --accent2-light: #ffedd5;
+  --success: #16a34a;
+  --success-light: #dcfce7;
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+  --warn: #d97706;
+  --warn-light: #fef3c7;
+  --text: #0f172a;
+  --text2: #475569;
+  --text3: #94a3b8;
+  --border: #c7d7ff;
+  --border2: #e2e8f0;
+  --shadow: 0 2px 12px rgba(37,99,235,0.10);
+  --shadow-lg: 0 8px 32px rgba(37,99,235,0.15);
+  --r: 16px;
+  --r-sm: 10px;
+  --font: 'Space Grotesk', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh;overflow-x:hidden}
-header{background:var(--surface);border-bottom:2px solid var(--border);padding:10px 14px;
-  display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;
-  box-shadow:0 2px 20px rgba(0,0,0,.5)}
-.logo{font-size:1rem;font-weight:700;color:var(--accent);letter-spacing:2px}
-.logo span{color:var(--accent2)}
-.hdr-right{display:flex;align-items:center;gap:8px}
-.db-pill{font-size:0.62rem;font-weight:700;padding:3px 9px;border-radius:20px;transition:all .3s}
-.db-pill.ok{background:rgba(0,217,126,.15);color:var(--success);border:1px solid var(--success)}
-.db-pill.err{background:rgba(255,71,87,.15);color:var(--danger);border:1px solid var(--danger)}
-.db-pill.saving{background:rgba(255,211,42,.15);color:var(--warn);border:1px solid var(--warn)}
-.cnt{background:var(--accent);color:var(--bg);font-size:0.68rem;font-weight:700;padding:3px 10px;border-radius:20px;min-width:55px;text-align:center}
-.tabs{display:flex;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:49px;z-index:99}
-.tab{flex:1;padding:10px 2px;text-align:center;font-size:0.65rem;letter-spacing:.5px;
-  text-transform:uppercase;cursor:pointer;color:var(--text2);border-bottom:2px solid transparent;transition:all .2s}
-.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
-.panel{display:none;padding:12px}.panel.active{display:block}
+html,body{height:100%;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
 
-/* CHOFER BOX */
-.chofer-box{background:var(--surface2);border:2px solid var(--accent);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.chofer-box-label{font-size:0.6rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
-.chofer-active{display:flex;align-items:center;gap:10px}
-.ch-avatar{width:42px;height:42px;border-radius:50%;background:var(--accent2);color:var(--bg);
-  font-size:1.1rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ch-name-big{font-size:1rem;font-weight:700;color:var(--text);flex:1}
-.ch-sub{font-size:0.7rem;color:var(--text2)}
-.btn-change{background:var(--surface);border:1px solid var(--border);border-radius:8px;
-  color:var(--accent2);font-family:var(--font);font-size:0.65rem;padding:7px 12px;cursor:pointer;font-weight:700;white-space:nowrap}
+/* ── HEADER ── */
+header {
+  background:var(--surface);
+  border-bottom:2px solid var(--border);
+  padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:200;
+  box-shadow:var(--shadow);
+}
+.logo {
+  font-size:1.15rem;font-weight:800;color:var(--accent);letter-spacing:-0.5px;
+  display:flex;align-items:center;gap:8px;
+}
+.logo-icon {font-size:1.4rem}
+.logo span {color:var(--accent2)}
+.hdr-right {display:flex;align-items:center;gap:8px}
+.db-pill {
+  font-size:0.62rem;font-weight:700;padding:4px 10px;border-radius:20px;
+  display:flex;align-items:center;gap:4px;transition:all .3s;
+}
+.db-pill.ok {background:var(--success-light);color:var(--success);border:1.5px solid #86efac}
+.db-pill.err {background:var(--danger-light);color:var(--danger);border:1.5px solid #fca5a5}
+.db-pill.saving {background:var(--warn-light);color:var(--warn);border:1.5px solid #fcd34d}
+.cnt-badge {
+  background:var(--accent);color:#fff;font-size:0.68rem;font-weight:700;
+  padding:4px 12px;border-radius:20px;min-width:60px;text-align:center;
+  box-shadow:0 2px 8px rgba(37,99,235,.3);
+}
 
-/* MODAL */
-.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:500;align-items:flex-end;justify-content:center}
-.modal-bg.show{display:flex;animation:fdIn .2s}
+/* ── TABS ── */
+.tabs {
+  display:flex;background:var(--surface);border-bottom:2px solid var(--border);
+  position:sticky;top:57px;z-index:190;
+  box-shadow:0 2px 8px rgba(37,99,235,.06);
+}
+.tab {
+  flex:1;padding:12px 4px;text-align:center;font-size:0.68rem;font-weight:700;
+  letter-spacing:.5px;text-transform:uppercase;cursor:pointer;
+  color:var(--text2);border-bottom:3px solid transparent;transition:all .2s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+}
+.tab .tab-ico {font-size:1.2rem}
+.tab.active {color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-light)}
+.panel {display:none;padding:14px}.panel.active{display:block}
+
+/* ── CARDS ── */
+.card {
+  background:var(--surface);border-radius:var(--r);border:1.5px solid var(--border);
+  padding:16px;margin-bottom:12px;box-shadow:var(--shadow);
+}
+.card-title {
+  font-size:0.65rem;font-weight:700;color:var(--text2);letter-spacing:2px;
+  text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;
+  border-bottom:1.5px solid var(--border2);display:flex;align-items:center;gap:6px;
+}
+
+/* ── CHOFER BOX ── */
+.chofer-hero {
+  background:linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%);
+  border-radius:var(--r);padding:16px;margin-bottom:12px;
+  color:#fff;box-shadow:0 4px 20px rgba(37,99,235,.35);
+  position:relative;overflow:hidden;
+}
+.chofer-hero::before {
+  content:'';position:absolute;top:-20px;right:-20px;
+  width:120px;height:120px;border-radius:50%;
+  background:rgba(255,255,255,.08);
+}
+.chofer-hero-label {font-size:0.6rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;opacity:.8;margin-bottom:8px}
+.chofer-hero-empty {font-size:0.95rem;font-weight:700;opacity:.9}
+.chofer-hero-active {display:flex;align-items:center;gap:12px}
+.ch-av {
+  width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.2);
+  font-size:1.3rem;font-weight:800;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;border:2px solid rgba(255,255,255,.3);
+}
+.ch-nm {font-size:1.05rem;font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ch-sb {font-size:0.7rem;opacity:.8;margin-top:2px}
+.btn-change {
+  background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.3);
+  border-radius:var(--r-sm);color:#fff;font-family:var(--font);font-size:0.68rem;
+  font-weight:700;padding:7px 12px;cursor:pointer;white-space:nowrap;
+  letter-spacing:.5px;transition:all .15s;
+}
+.btn-change:active {background:rgba(255,255,255,.35)}
+
+/* ── MODAL ── */
+.modal-bg {
+  display:none;position:fixed;inset:0;background:rgba(15,23,42,.6);
+  z-index:500;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal-bg.show {display:flex;animation:fdIn .2s}
 @keyframes fdIn{from{opacity:0}to{opacity:1}}
-.modal{background:var(--surface);border-radius:20px 20px 0 0;padding:20px 16px;width:100%;max-width:500px;
-  border-top:2px solid var(--border);max-height:85vh;overflow-y:auto}
-.modal-title{font-size:0.8rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;font-weight:700}
-.ch-opt{display:flex;align-items:center;gap:12px;padding:12px;border-radius:var(--r);
-  background:var(--surface2);border:1px solid var(--border);cursor:pointer;margin-bottom:8px;transition:all .15s}
-.ch-opt:active{border-color:var(--accent)}
-.ch-opt-av{width:38px;height:38px;border-radius:50%;background:var(--accent2);color:var(--bg);
-  font-size:.9rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.ch-opt-name{font-size:0.85rem;font-weight:700}
-.ch-opt-sub{font-size:0.62rem;color:var(--text2)}
+.modal {
+  background:var(--surface);border-radius:24px 24px 0 0;
+  padding:20px 16px 32px;width:100%;max-width:500px;
+  border-top:3px solid var(--accent);max-height:80vh;overflow-y:auto;
+  box-shadow:0 -8px 40px rgba(37,99,235,.2);
+}
+.modal-handle {width:40px;height:4px;background:var(--border);border-radius:4px;margin:0 auto 16px}
+.modal-title {font-size:0.85rem;font-weight:800;color:var(--accent);letter-spacing:1px;text-transform:uppercase;margin-bottom:14px}
+.ch-opt {
+  display:flex;align-items:center;gap:12px;padding:13px;border-radius:var(--r-sm);
+  background:var(--surface2);border:1.5px solid var(--border2);cursor:pointer;
+  margin-bottom:8px;transition:all .15s;
+}
+.ch-opt:active {border-color:var(--accent);background:var(--accent-light)}
+.ch-opt-av {
+  width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#1d4ed8);
+  color:#fff;font-size:.95rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.ch-opt-name {font-size:0.88rem;font-weight:700}
+.ch-opt-sub {font-size:0.62rem;color:var(--text2);margin-top:2px}
+.ch-opt-count {
+  margin-left:auto;background:var(--accent);color:#fff;
+  font-size:0.65rem;font-weight:700;padding:3px 9px;border-radius:20px;flex-shrink:0;
+}
 
-/* CÁMARA */
-.cam-wrap{background:#000;border-radius:var(--r);overflow:hidden;border:1px solid var(--border);margin-bottom:10px;min-height:180px;position:relative}
-#reader{width:100%}
-#reader__dashboard_section_swaplink,#reader__filescan_input,#html5-qrcode-button-camera-stop,
-#html5-qrcode-button-camera-start,#reader__dashboard_section_csr button,
-#reader__status_span,#reader__header_message,#reader__dashboard{display:none!important}
+/* ── CAMERA ── */
+.cam-wrap {
+  background:#000;border-radius:var(--r);overflow:hidden;
+  border:2px solid var(--border);margin-bottom:10px;
+  min-height:220px;position:relative;
+  box-shadow:0 4px 24px rgba(0,0,0,.2);
+}
+#reader {width:100%}
+/* Hide html5-qrcode ugly UI */
+#reader__dashboard_section_swaplink,#reader__filescan_input,
+#html5-qrcode-button-camera-stop,#html5-qrcode-button-camera-start,
+#reader__dashboard_section_csr button,#reader__status_span,
+#reader__header_message,#reader__dashboard{display:none!important}
 #reader__scan_region{border-radius:var(--r);overflow:hidden}
 #reader__scan_region img{display:none!important}
-.cam-badge{position:absolute;top:8px;left:50%;transform:translateX(-50%);
-  background:rgba(0,0,0,.65);color:var(--accent);font-size:0.6rem;padding:3px 10px;
-  border-radius:20px;letter-spacing:1px;pointer-events:none;white-space:nowrap;z-index:10}
+.cam-badge {
+  position:absolute;top:10px;left:50%;transform:translateX(-50%);
+  background:rgba(0,0,0,.65);color:#fff;font-size:0.62rem;font-weight:700;
+  padding:4px 12px;border-radius:20px;letter-spacing:1px;
+  pointer-events:none;white-space:nowrap;z-index:10;
+  border:1px solid rgba(255,255,255,.2);
+}
+.cam-badge.live {background:rgba(22,163,74,.8);color:#fff}
 
-/* BOTONES */
-.cam-controls{display:flex;gap:8px;margin-bottom:10px}
-.btn{flex:1;padding:11px 8px;border:none;border-radius:var(--r);font-family:var(--font);
-  font-size:0.72rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;
-  transition:all .15s;display:flex;align-items:center;justify-content:center;gap:6px}
-.btn:active{transform:scale(.94)}
-.btn-primary{background:var(--accent);color:var(--bg)}
-.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
-.btn-danger{background:var(--danger);color:#fff}
-.btn-success{background:var(--success);color:var(--bg)}
+/* ── BUTTONS ── */
+.cam-controls {display:flex;gap:8px;margin-bottom:10px}
+.btn {
+  flex:1;padding:13px 10px;border:none;border-radius:var(--r-sm);
+  font-family:var(--font);font-size:0.75rem;font-weight:700;cursor:pointer;
+  letter-spacing:.5px;text-transform:uppercase;transition:all .15s;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  box-shadow:0 2px 8px rgba(0,0,0,.1);
+}
+.btn:active {transform:scale(.93);box-shadow:none}
+.btn-primary {background:var(--accent);color:#fff;box-shadow:0 3px 12px rgba(37,99,235,.35)}
+.btn-red {background:var(--danger);color:#fff;box-shadow:0 3px 12px rgba(220,38,38,.35)}
+.btn-secondary {background:var(--surface);color:var(--text);border:1.5px solid var(--border)}
+.btn-orange {background:var(--accent2);color:#fff;box-shadow:0 3px 12px rgba(249,115,22,.35)}
+.btn-green {background:var(--success);color:#fff;box-shadow:0 3px 12px rgba(22,163,74,.35)}
+.btn-whatsapp {
+  background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;
+  box-shadow:0 3px 14px rgba(37,211,102,.4);
+}
+.btn-icon {font-size:1.1rem}
 
-/* FLASH */
-.flash{margin-bottom:10px;padding:12px 14px;border-radius:var(--r);font-size:0.9rem;
-  letter-spacing:1px;text-align:center;display:none;font-weight:700}
-.flash.show{display:block;animation:fIn .2s}
-.flash.ok{background:rgba(0,217,126,.15);border:1px solid var(--success);color:var(--success)}
-.flash.dup{background:rgba(255,71,87,.15);border:1px solid var(--danger);color:var(--danger)}
-@keyframes fIn{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
+/* ── FLASH ── */
+.flash {
+  margin-bottom:10px;padding:13px 16px;border-radius:var(--r-sm);font-size:0.92rem;
+  text-align:center;display:none;font-weight:700;font-family:var(--mono);
+}
+.flash.show {display:block;animation:fIn .18s}
+.flash.ok {background:var(--success-light);border:2px solid #86efac;color:var(--success)}
+.flash.dup {background:var(--danger-light);border:2px solid #fca5a5;color:var(--danger)}
+@keyframes fIn{from{transform:scale(.96);opacity:0}to{transform:scale(1);opacity:1}}
 
-/* INPUTS */
-.manual-row{display:flex;gap:8px;margin-bottom:10px}
-.input-text{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);
-  color:var(--text);font-family:var(--font);font-size:0.85rem;padding:10px 12px;outline:none;width:100%}
-.input-text:focus{border-color:var(--accent)}
-select.input-text{cursor:pointer;-webkit-appearance:none}
+/* ── INPUTS ── */
+.manual-row {display:flex;gap:8px;margin-bottom:10px}
+.input-text {
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);
+  color:var(--text);font-family:var(--font);font-size:0.88rem;padding:11px 14px;
+  outline:none;width:100%;transition:border .15s;
+}
+.input-text:focus {border-color:var(--accent);box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+select.input-text {cursor:pointer;-webkit-appearance:none}
 
-/* STATS */
-.stats-row{display:flex;gap:8px;margin-bottom:10px}
-.stat{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:8px 4px;text-align:center}
-.stat-n{font-size:1.3rem;font-weight:700;color:var(--accent);line-height:1}
-.stat-l{font-size:0.58rem;color:var(--text2);letter-spacing:1px;text-transform:uppercase;margin-top:3px}
+/* ── STATS ── */
+.stats-row {display:flex;gap:8px;margin-bottom:12px}
+.stat {
+  flex:1;background:var(--surface);border:1.5px solid var(--border);
+  border-radius:var(--r-sm);padding:10px 4px;text-align:center;
+  box-shadow:var(--shadow);
+}
+.stat-n {font-size:1.5rem;font-weight:800;color:var(--accent);line-height:1;font-family:var(--mono)}
+.stat-l {font-size:0.58rem;color:var(--text2);font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-top:3px}
 
-/* RECIENTES */
-.recent-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);
-  border-radius:8px;margin-bottom:4px;border-left:3px solid var(--success);animation:sIn .2s}
-@keyframes sIn{from{transform:translateX(-6px);opacity:0}to{transform:translateX(0);opacity:1}}
-.recent-code{font-size:0.8rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.recent-time{font-size:0.6rem;color:var(--text2);flex-shrink:0}
-.label-sm{font-size:0.6rem;color:var(--text2);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
+/* ── RECIENTES ── */
+.recent-item {
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--surface);border-radius:var(--r-sm);margin-bottom:6px;
+  border-left:4px solid var(--success);border:1.5px solid var(--border2);
+  border-left:4px solid var(--success);animation:sIn .2s;box-shadow:var(--shadow);
+}
+@keyframes sIn{from{transform:translateX(-8px);opacity:0}to{transform:translateX(0);opacity:1}}
+.recent-code {font-size:0.82rem;font-weight:700;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono)}
+.recent-time {font-size:0.6rem;color:var(--text2);flex-shrink:0}
+.recent-ch {font-size:0.6rem;color:var(--accent);font-weight:700;flex-shrink:0}
+.label-sm {font-size:0.62rem;color:var(--text2);font-weight:700;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px}
 
-/* TABLE */
-.data-controls{display:flex;gap:8px;margin-bottom:8px}
-.ch-filter{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
-.ch-pill{font-size:0.63rem;padding:4px 10px;border-radius:20px;cursor:pointer;font-weight:700;
-  background:var(--surface2);border:1px solid var(--border);color:var(--text2);transition:all .15s}
-.ch-pill.active{background:rgba(0,229,255,.1);border-color:var(--accent);color:var(--accent)}
-.table-wrap{overflow-x:auto;border-radius:var(--r);border:1px solid var(--border);max-height:calc(100vh - 240px);overflow-y:auto}
-table{width:100%;border-collapse:collapse;font-size:0.72rem;min-width:360px}
-thead{background:var(--surface2);position:sticky;top:0;z-index:10}
-th{padding:10px 8px;text-align:left;color:var(--accent);font-size:0.62rem;letter-spacing:1.5px;
-  text-transform:uppercase;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
-td{padding:8px;border-bottom:1px solid rgba(255,255,255,.03);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-tr:hover td{background:rgba(0,229,255,.03)}
-.del-btn{background:none;border:none;color:var(--danger);cursor:pointer;font-size:.9rem;padding:2px 6px;border-radius:4px}
-.empty-state{text-align:center;padding:32px 20px;color:var(--text2)}
+/* ── TABLE ── */
+.data-controls {display:flex;gap:8px;margin-bottom:8px}
+.ch-filter {display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.ch-pill {
+  font-size:0.65rem;padding:5px 12px;border-radius:20px;cursor:pointer;font-weight:700;
+  background:var(--surface);border:1.5px solid var(--border2);color:var(--text2);transition:all .15s;
+}
+.ch-pill.active {background:var(--accent);border-color:var(--accent);color:#fff}
+.table-wrap {
+  overflow-x:auto;border-radius:var(--r-sm);border:1.5px solid var(--border);
+  max-height:calc(100vh - 250px);overflow-y:auto;box-shadow:var(--shadow);
+}
+table {width:100%;border-collapse:collapse;font-size:0.73rem;min-width:360px}
+thead {background:var(--surface2);position:sticky;top:0;z-index:10}
+th {
+  padding:11px 10px;text-align:left;color:var(--accent);font-size:0.62rem;font-weight:800;
+  letter-spacing:1.5px;text-transform:uppercase;border-bottom:2px solid var(--border);
+  cursor:pointer;user-select:none;white-space:nowrap;
+}
+td {padding:9px 10px;border-bottom:1px solid var(--border2);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td {background:var(--accent-light)}
+.del-btn {
+  background:none;border:none;color:var(--danger);cursor:pointer;
+  font-size:1rem;padding:2px 6px;border-radius:6px;transition:background .15s;
+}
+.del-btn:active {background:var(--danger-light)}
+.empty-state {text-align:center;padding:40px 20px;color:var(--text2)}
 
-/* EXPORT */
-.exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
-.exp-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);
-  padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s}
-.exp-card:active{border-color:var(--accent);transform:scale(.96)}
-.exp-icon{font-size:2rem;margin-bottom:6px}
-.exp-name{font-size:0.75rem;font-weight:700;color:var(--text)}
-.exp-desc{font-size:0.6rem;color:var(--text2);margin-top:3px}
+/* ── EXPORT ── */
+.exp-grid {display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.exp-card {
+  background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r-sm);
+  padding:18px 10px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);
+}
+.exp-card:active {border-color:var(--accent);background:var(--accent-light);transform:scale(.96)}
+.exp-icon {font-size:2.2rem;margin-bottom:6px}
+.exp-name {font-size:0.78rem;font-weight:800;color:var(--text)}
+.exp-desc {font-size:0.6rem;color:var(--text2);margin-top:3px}
+.exp-card.whatsapp-card {border-color:#25d366;background:linear-gradient(135deg,#f0fdf4,#dcfce7)}
+.exp-card.whatsapp-card .exp-name {color:#16a34a}
 
-/* SETTINGS */
-.sec{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px}
-.sec-title{font-size:0.62rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;
-  margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-.srow{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
-.srow:last-child{margin-bottom:0}
-.slabel{font-size:0.78rem}
-.shint{font-size:0.62rem;color:var(--text2);margin-top:2px}
-.toggle{position:relative;width:44px;height:24px;flex-shrink:0}
-.toggle input{opacity:0;width:0;height:0;position:absolute}
-.tsl{position:absolute;inset:0;background:#333;border-radius:24px;cursor:pointer;transition:.3s}
-.tsl::before{content:'';position:absolute;width:18px;height:18px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s}
-.toggle input:checked+.tsl{background:var(--accent)}
-.toggle input:checked+.tsl::before{transform:translateX(20px)}
-.col-list,.ch-list{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow-y:auto}
-.col-item{display:flex;align-items:center;gap:8px}
-.col-item .input-text{flex:1;padding:7px 10px;font-size:0.78rem}
-.abox{border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:0.73rem;line-height:1.6}
-.abox-warn{background:rgba(255,211,42,.08);border:1px solid var(--warn);color:var(--warn)}
-.abox-ok{background:rgba(0,217,126,.08);border:1px solid var(--success);color:var(--success)}
-.abox-info{background:rgba(0,229,255,.08);border:1px solid var(--accent);color:var(--accent)}
-.abox-err{background:rgba(255,71,87,.08);border:1px solid var(--danger);color:var(--danger)}
+/* WHATSAPP BIG BUTTON */
+.wa-big {
+  background:linear-gradient(135deg,#25d366,#128c7e);color:#fff;
+  border-radius:var(--r);padding:18px;margin-bottom:12px;
+  display:flex;align-items:center;gap:14px;cursor:pointer;
+  box-shadow:0 4px 20px rgba(37,211,102,.35);transition:all .15s;
+  border:none;width:100%;font-family:var(--font);text-align:left;
+}
+.wa-big:active {transform:scale(.97)}
+.wa-big-icon {font-size:2.4rem;flex-shrink:0}
+.wa-big-text {flex:1}
+.wa-big-title {font-size:1rem;font-weight:800;margin-bottom:3px}
+.wa-big-sub {font-size:0.72rem;opacity:.9}
 
-#db-banner{display:none;background:var(--danger);color:#fff;padding:8px 14px;font-size:0.72rem;text-align:center;line-height:1.5}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);
-  background:var(--surface2);border:1px solid var(--border);color:var(--text);
-  padding:10px 20px;border-radius:30px;font-size:0.78rem;z-index:9999;
-  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);white-space:nowrap;pointer-events:none;
-  box-shadow:0 4px 20px rgba(0,0,0,.5)}
-#toast.show{transform:translateX(-50%) translateY(0)}
+/* ── SETTINGS ── */
+.sec {background:var(--surface);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.sec-title {font-size:0.62rem;font-weight:800;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border2);display:flex;align-items:center;gap:6px}
+.srow {display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:8px}
+.srow:last-child {margin-bottom:0}
+.slabel {font-size:0.82rem;font-weight:600}
+.shint {font-size:0.62rem;color:var(--text2);margin-top:2px}
+.toggle {position:relative;width:46px;height:26px;flex-shrink:0}
+.toggle input {opacity:0;width:0;height:0;position:absolute}
+.tsl {position:absolute;inset:0;background:var(--border);border-radius:26px;cursor:pointer;transition:.3s}
+.tsl::before {content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.3s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle input:checked+.tsl {background:var(--accent)}
+.toggle input:checked+.tsl::before {transform:translateX(20px)}
+.col-list,.ch-list {display:flex;flex-direction:column;gap:8px;max-height:280px;overflow-y:auto}
+.col-item {display:flex;align-items:center;gap:8px}
+.col-item .input-text {flex:1;padding:8px 10px;font-size:0.8rem}
+
+/* ── ALERTS ── */
+.abox {border-radius:var(--r-sm);padding:11px 13px;margin-bottom:8px;font-size:0.74rem;line-height:1.6;font-weight:600}
+.abox-warn {background:var(--warn-light);border:1.5px solid #fcd34d;color:var(--warn)}
+.abox-ok {background:var(--success-light);border:1.5px solid #86efac;color:var(--success)}
+.abox-info {background:var(--accent-light);border:1.5px solid #93c5fd;color:var(--accent)}
+.abox-err {background:var(--danger-light);border:1.5px solid #fca5a5;color:var(--danger)}
+
+/* ── DB BANNER ── */
+#db-banner {
+  display:none;background:var(--danger);color:#fff;
+  padding:10px 16px;font-size:0.74rem;text-align:center;line-height:1.5;font-weight:700;
+}
+
+/* ── TOAST ── */
+#toast {
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);
+  background:var(--text);color:#fff;padding:11px 22px;border-radius:30px;
+  font-size:0.8rem;font-weight:700;z-index:9999;
+  transition:transform .3s cubic-bezier(.175,.885,.32,1.275);
+  white-space:nowrap;pointer-events:none;box-shadow:0 4px 24px rgba(0,0,0,.25);
+}
+#toast.show {transform:translateX(-50%) translateY(0)}
+
 @media(min-width:600px){body{max-width:640px;margin:0 auto}}
 </style>
 </head>
 <body>
 
-<div id="db-banner">⚠ IndexedDB no disponible — Los datos NO se guardarán al cerrar. Exporta ahora.</div>
+<div id="db-banner">⚠ Sin base de datos — Los datos NO se guardan al cerrar. ¡Exporta ahora!</div>
 
 <header>
-  <div class="logo">Escanea<span>Guías</span></div>
+  <div class="logo">
+    <span class="logo-ico">📦</span>Escanea<span>Guías</span>
+  </div>
   <div class="hdr-right">
     <div class="db-pill ok" id="db-pill">💾 OK</div>
-    <div class="cnt" id="hdr-cnt">0 guías</div>
+    <div class="cnt-badge" id="hdr-cnt">0 guías</div>
   </div>
 </header>
 
 <div class="tabs">
-  <div class="tab active" data-tab="scanner">📷 Scan</div>
-  <div class="tab" data-tab="data">📋 Lista</div>
-  <div class="tab" data-tab="export">💾 Export</div>
-  <div class="tab" data-tab="settings">⚙️ Config</div>
+  <div class="tab active" data-tab="scanner"><span class="tab-ico">📷</span>Scan</div>
+  <div class="tab" data-tab="data"><span class="tab-ico">📋</span>Lista</div>
+  <div class="tab" data-tab="export"><span class="tab-ico">💾</span>Export</div>
+  <div class="tab" data-tab="settings"><span class="tab-ico">⚙️</span>Config</div>
 </div>
 
-<!-- SCANNER -->
+<!-- ══════ SCANNER ══════ -->
 <div id="scanner-panel" class="panel active">
 
-  <div class="chofer-box" id="chofer-box">
-    <div class="chofer-box-label">👤 Chofer activo</div>
-    <div id="box-empty" style="color:var(--warn);font-size:0.85rem;font-weight:700;margin-bottom:10px">
-      ⚠ Selecciona un chofer para empezar a escanear
+  <!-- Chofer activo -->
+  <div class="chofer-hero" id="chofer-hero">
+    <div class="chofer-hero-label">👤 Chofer activo</div>
+    <div id="box-empty">
+      <div class="chofer-hero-empty">⚠ Selecciona un chofer para empezar</div>
+      <button class="btn btn-secondary" onclick="openModal()"
+        style="margin-top:10px;background:rgba(255,255,255,.9);color:var(--accent);border:none;width:100%;font-size:0.8rem">
+        SELECCIONAR CHOFER
+      </button>
     </div>
-    <div id="box-active" class="chofer-active" style="display:none;margin-bottom:10px">
-      <div class="ch-avatar" id="ch-av">?</div>
+    <div id="box-active" class="chofer-hero-active" style="display:none">
+      <div class="ch-av" id="ch-av">?</div>
       <div style="flex:1;min-width:0">
-        <div class="ch-name-big" id="ch-nm">—</div>
-        <div class="ch-sub" id="ch-sb">0 guías hoy</div>
+        <div class="ch-nm" id="ch-nm">—</div>
+        <div class="ch-sb" id="ch-sb">0 guías hoy</div>
       </div>
-      <button class="btn-change" onclick="openModal()">CAMBIAR</button>
+      <button class="btn-change" onclick="openModal()">CAMBIAR ▼</button>
     </div>
-    <button class="btn btn-primary" id="btn-sel" onclick="openModal()" style="width:100%">
-      SELECCIONAR CHOFER
-    </button>
   </div>
 
+  <!-- Cámara -->
   <div class="cam-wrap">
     <div id="reader"></div>
-    <div class="cam-badge" id="cam-badge">Cámara apagada</div>
+    <div class="cam-badge" id="cam-badge">📵 Cámara apagada</div>
   </div>
 
   <div class="cam-controls">
-    <button class="btn btn-primary" id="btn-cam" onclick="toggleCam()">▶ INICIAR CÁMARA</button>
-    <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara">🔄</button>
-    <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()">🔦</button>
+    <button class="btn btn-primary" id="btn-cam" onclick="toggleCam()">
+      <span class="btn-icon">▶</span> INICIAR
+    </button>
+    <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔄</button>
+    <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔦</button>
   </div>
 
   <div class="flash" id="flash"></div>
 
+  <!-- Manual -->
   <div class="manual-row">
-    <input class="input-text" id="manual-in" type="text" placeholder="Ingresar número de guía manual..."
+    <input class="input-text" id="manual-in" type="text"
+      placeholder="Ingresar número de guía manual..."
       autocomplete="off" autocorrect="off" spellcheck="false">
-    <button class="btn btn-secondary" style="flex:0 0 auto;padding:10px 16px" onclick="addManual()">＋</button>
+    <button class="btn btn-secondary" style="flex:0 0 auto;padding:11px 18px;font-size:1.1rem" onclick="addManual()">＋</button>
   </div>
 
+  <!-- Stats -->
   <div class="stats-row">
     <div class="stat"><div class="stat-n" id="st-total">0</div><div class="stat-l">Total</div></div>
     <div class="stat"><div class="stat-n" id="st-hoy" style="color:var(--success)">0</div><div class="stat-l">Hoy</div></div>
@@ -237,15 +424,16 @@ tr:hover td{background:rgba(0,229,255,.03)}
     <div class="stat"><div class="stat-n" id="st-chof" style="color:var(--accent2)">0</div><div class="stat-l">Choferes</div></div>
   </div>
 
+  <!-- Recientes -->
   <div class="label-sm" style="margin-top:4px">Últimas guías escaneadas</div>
   <div id="recents"></div>
 </div>
 
-<!-- LISTA -->
+<!-- ══════ LISTA ══════ -->
 <div id="data-panel" class="panel">
   <div class="data-controls">
-    <input class="input-text" id="search-in" type="text" placeholder="Buscar guía, chofer..." oninput="renderTable()">
-    <button class="btn btn-danger" style="flex:0 0 auto;padding:10px 14px" onclick="clearAll()">🗑</button>
+    <input class="input-text" id="search-in" type="text" placeholder="🔍 Buscar guía, chofer..." oninput="renderTable()">
+    <button class="btn btn-red" style="flex:0 0 auto;padding:11px 14px;font-size:1rem" onclick="clearAll(false)">🗑</button>
   </div>
   <div class="ch-filter" id="ch-filter"></div>
   <div class="table-wrap">
@@ -253,42 +441,58 @@ tr:hover td{background:rgba(0,229,255,.03)}
   </div>
 </div>
 
-<!-- EXPORT -->
+<!-- ══════ EXPORT ══════ -->
 <div id="export-panel" class="panel">
-  <div class="abox abox-info">📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes</div>
+
+  <div class="abox abox-info">
+    📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes listos para exportar
+  </div>
+
+  <!-- WHATSAPP DESTACADO -->
+  <button class="wa-big" onclick="sendWhatsApp()">
+    <div class="wa-big-icon">📲</div>
+    <div class="wa-big-text">
+      <div class="wa-big-title">Enviar Excel por WhatsApp</div>
+      <div class="wa-big-sub">Descarga el Excel y abre WhatsApp listo para compartir</div>
+    </div>
+    <span style="font-size:1.4rem;opacity:.8">›</span>
+  </button>
+
   <div class="exp-grid">
-    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-name">Excel</div><div class="exp-desc">Hoja por chofer</div></div>
+    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-name">Excel</div><div class="exp-desc">Formato por chofer</div></div>
     <div class="exp-card" onclick="exportCSV()"><div class="exp-icon">📄</div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
-    <div class="exp-card" onclick="exportJSON()"><div class="exp-icon">{ }</div><div class="exp-name">JSON</div><div class="exp-desc">Backup completo</div></div>
+    <div class="exp-card" onclick="exportJSON()"><div class="exp-icon">💾</div><div class="exp-name">Backup JSON</div><div class="exp-desc">Respaldo completo</div></div>
+    <div class="exp-card" onclick="copyGuiasOnly()"><div class="exp-icon">📋</div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Solo los números</div></div>
     <div class="exp-card" onclick="exportTXT()"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Una guía por línea</div></div>
     <div class="exp-card" onclick="exportHTML()"><div class="exp-icon">🌐</div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
-    <div class="exp-card" onclick="copyClip()"><div class="exp-icon">📋</div><div class="exp-name">Copiar</div><div class="exp-desc">Al portapapeles</div></div>
   </div>
-  <div class="sec">
-    <div class="sec-title">📊 Resumen por Chofer</div>
+
+  <div class="card">
+    <div class="card-title">📊 Resumen por Chofer</div>
     <div id="ch-summary"></div>
   </div>
 </div>
 
-<!-- SETTINGS -->
+<!-- ══════ SETTINGS ══════ -->
 <div id="settings-panel" class="panel">
   <div class="sec">
     <div class="sec-title">🔒 Base de Datos</div>
     <div id="db-info"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-      <button class="btn btn-success" style="flex:1;font-size:0.65rem" onclick="exportBackupJSON()">⬇ Backup JSON</button>
-      <button class="btn btn-secondary" style="flex:1;font-size:0.65rem" onclick="document.getElementById('restore-file').click()">⬆ Restaurar</button>
+      <button class="btn btn-green" style="flex:1;font-size:0.68rem" onclick="exportBackupJSON()">⬇ Backup JSON</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:0.68rem" onclick="document.getElementById('restore-file').click()">⬆ Restaurar</button>
       <input type="file" id="restore-file" accept=".json" style="display:none" onchange="importBackup(event)">
     </div>
   </div>
+
   <div class="sec">
-    <div class="sec-title">⚙️ Escáner</div>
+    <div class="sec-title">📷 Escáner</div>
     <div class="srow">
       <div><div class="slabel">Evitar duplicados</div><div class="shint">No agrega la misma guía dos veces</div></div>
       <label class="toggle"><input type="checkbox" id="set-dedup" checked><span class="tsl"></span></label>
     </div>
     <div class="srow">
-      <div><div class="slabel">Beep al escanear</div></div>
+      <div><div class="slabel">Sonido al escanear</div></div>
       <label class="toggle"><input type="checkbox" id="set-beep" checked><span class="tsl"></span></label>
     </div>
     <div class="srow">
@@ -300,61 +504,70 @@ tr:hover td{background:rgba(0,229,255,.03)}
       <input type="number" class="input-text" id="set-pause" value="1200" style="width:80px;flex:0 0 auto;text-align:center" min="300">
     </div>
     <div class="srow">
-      <div><div class="slabel">Auto-backup cada N guías</div><div class="shint">0 = desactivado</div></div>
-      <input type="number" class="input-text" id="set-ab" value="200" style="width:80px;flex:0 0 auto;text-align:center" min="0">
+      <div><div class="slabel">Auto-backup cada N guías</div><div class="shint">0 = desactivado. Descarga JSON automático</div></div>
+      <input type="number" class="input-text" id="set-ab" value="0" style="width:80px;flex:0 0 auto;text-align:center" min="0">
     </div>
   </div>
+
   <div class="sec">
     <div class="sec-title">👤 Choferes (<span id="ch-count">0</span>)</div>
-    <div class="abox abox-info" style="font-size:0.7rem">💡 Sin límite. Agrega todos los que necesites.</div>
+    <div class="abox abox-info" style="font-size:0.72rem">💡 Sin límite. Puedes seguir agregando guías a un chofer cuantas veces quieras — solo vuelve a seleccionarlo.</div>
     <div class="ch-list" id="ch-list"></div>
     <div class="manual-row" style="margin-top:10px">
       <input class="input-text" id="new-ch-in" type="text" placeholder="Nombre del chofer...">
-      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addChofer()">＋</button>
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:11px 16px;font-size:1.1rem" onclick="addChofer()">＋</button>
     </div>
     <div style="margin-top:12px">
       <div class="label-sm" style="margin-bottom:6px">Lista completa (uno por línea):</div>
       <textarea class="input-text" id="bulk-ch" rows="5"
-        placeholder="Juan García&#10;Pedro López&#10;Carlos Ruiz&#10;María Torres&#10;..." style="resize:vertical;font-size:0.75rem"></textarea>
-      <button class="btn btn-secondary" style="width:100%;margin-top:6px;font-size:0.7rem" onclick="bulkChoferes()">＋ Agregar todos</button>
+        placeholder="Juan García&#10;Pedro López&#10;Carlos Ruiz&#10;María Torres&#10;Alondra Soto&#10;Viridiana Hdez&#10;..." style="resize:vertical;font-size:0.8rem"></textarea>
+      <button class="btn btn-secondary" style="width:100%;margin-top:8px;font-size:0.75rem" onclick="bulkChoferes()">＋ Agregar todos</button>
     </div>
   </div>
+
   <div class="sec">
     <div class="sec-title">📋 Columnas Extra</div>
     <div class="col-list" id="col-list"></div>
     <div class="manual-row" style="margin-top:10px">
       <input class="input-text" id="new-col-in" type="text" placeholder="Ej: ruta, zona, tipo...">
-      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="addCol()">＋</button>
+      <button class="btn btn-primary" style="flex:0 0 auto;padding:11px 16px;font-size:1.1rem" onclick="addCol()">＋</button>
     </div>
   </div>
+
   <div class="sec">
     <div class="sec-title">🗑 Zona de Peligro</div>
-    <div class="abox abox-err" style="font-size:0.7rem;margin-bottom:10px">⚠ Irreversible. Descarga backup primero.</div>
+    <div class="abox abox-err" style="font-size:0.72rem;margin-bottom:10px">⚠ Estas acciones son irreversibles. Descarga backup primero.</div>
     <div style="display:flex;gap:8px">
-      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll(false)">Borrar registros</button>
-      <button class="btn btn-danger" style="flex:1;font-size:0.65rem" onclick="clearAll(true)">Borrar TODO</button>
+      <button class="btn btn-red" style="flex:1;font-size:0.68rem" onclick="clearAll(false)">Borrar registros</button>
+      <button class="btn btn-red" style="flex:1;font-size:0.68rem" onclick="clearAll(true)">Borrar TODO</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL CHOFER -->
+<!-- ══════ MODAL CHOFER ══════ -->
 <div class="modal-bg" id="modal-bg">
   <div class="modal">
+    <div class="modal-handle"></div>
     <div class="modal-title">👤 Seleccionar Chofer</div>
     <div id="modal-grid"></div>
-    <div class="manual-row" style="margin-top:4px">
-      <input class="input-text" id="modal-new-ch" type="text" placeholder="Nuevo chofer...">
-      <button class="btn btn-primary" style="flex:0 0 auto;padding:10px 14px" onclick="modalAdd()">＋</button>
+    <div style="border-top:1.5px solid var(--border2);margin:12px 0 10px;padding-top:12px">
+      <div class="label-sm" style="margin-bottom:8px">Agregar nuevo chofer</div>
+      <div class="manual-row">
+        <input class="input-text" id="modal-new-ch" type="text" placeholder="Nombre...">
+        <button class="btn btn-primary" style="flex:0 0 auto;padding:11px 16px;font-size:1.1rem" onclick="modalAdd()">＋</button>
+      </div>
     </div>
-    <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="closeModal()">Cancelar</button>
+    <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeModal()">Cancelar</button>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-/* ══════════════ INDEXEDDB ══════════════ */
-const DB_NAME='escanerguias_v4';
+/* ══════════════════════════════════════
+   INDEXEDDB
+══════════════════════════════════════ */
+const DB_NAME='escanerguias_v5';
 let db=null,dbOK=false;
 
 function openDB(){
@@ -406,7 +619,9 @@ async function cfgGet(key,def){
 }
 const cfgSet=(k,v)=>idbPut('config',{key:k,value:v});
 
-/* ══════════════ ESTADO ══════════════ */
+/* ══════════════════════════════════════
+   ESTADO
+══════════════════════════════════════ */
 let records=[],choferes=[],extraCols=[],dupCount=0;
 let guidSet=new Set(),activeChofer='';
 let camOn=false,facing='environment',html5Qr=null;
@@ -419,16 +634,23 @@ const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 const escA=s=>String(s||'').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 const ini=s=>(s||'?').trim()[0].toUpperCase();
 
-/* ══════════════ DB PILL ══════════════ */
+/* ══════════════════════════════════════
+   DB STATUS
+══════════════════════════════════════ */
 function setDbPill(s,msg){const el=document.getElementById('db-pill');el.className='db-pill '+s;el.textContent=msg;}
 async function persistRec(rec){
   setDbPill('saving','💾...');
   try{await idbPut('records',rec);setDbPill('ok','💾 OK');}
-  catch(e){setDbPill('err','❌ ERR');toast('⚠ Error guardando');}
+  catch(e){setDbPill('err','❌ ERR');toast('⚠ Error guardando: '+e.message);}
 }
-const persistCfg=()=>Promise.all([cfgSet('choferes',choferes),cfgSet('extraCols',extraCols),cfgSet('dupCount',dupCount),cfgSet('activeChofer',activeChofer)]);
+const persistCfg=()=>Promise.all([
+  cfgSet('choferes',choferes),cfgSet('extraCols',extraCols),
+  cfgSet('dupCount',dupCount),cfgSet('activeChofer',activeChofer)
+]);
 
-/* ══════════════ TABS ══════════════ */
+/* ══════════════════════════════════════
+   TABS
+══════════════════════════════════════ */
 document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));
   t.classList.add('active');
@@ -438,7 +660,9 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   if(t.dataset.tab==='settings')renderSettings();
 }));
 
-/* ══════════════ MODAL CHOFER ══════════════ */
+/* ══════════════════════════════════════
+   MODAL CHOFER
+══════════════════════════════════════ */
 function openModal(){
   const g=document.getElementById('modal-grid');
   if(!choferes.length){
@@ -446,41 +670,48 @@ function openModal(){
   } else {
     g.innerHTML=choferes.map(c=>{
       const n=records.filter(r=>r.chofer===c).length;
-      return `<div class="ch-opt" onclick="selectChofer('${escA(c)}')">
+      const isActive=c===activeChofer;
+      return `<div class="ch-opt" onclick="selectChofer('${escA(c)}')" style="${isActive?'border-color:var(--accent);background:var(--accent-light)':''}">
         <div class="ch-opt-av">${ini(c)}</div>
-        <div><div class="ch-opt-name">${esc(c)}</div><div class="ch-opt-sub">${n} guía${n!==1?'s':''} registradas</div></div>
+        <div style="flex:1"><div class="ch-opt-name">${esc(c)}${isActive?' ✓':''}</div><div class="ch-opt-sub">${n} guía${n!==1?'s':''} registradas</div></div>
+        <div class="ch-opt-count">${n}</div>
       </div>`;
     }).join('');
   }
   document.getElementById('modal-bg').classList.add('show');
+  document.getElementById('modal-new-ch').value='';
 }
-function closeModal(){document.getElementById('modal-bg').classList.remove('show');document.getElementById('modal-new-ch').value='';}
+function closeModal(){document.getElementById('modal-bg').classList.remove('show');}
 document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===document.getElementById('modal-bg'))closeModal();});
 
 async function selectChofer(name){
   activeChofer=name;closeModal();updateChoferBox();
-  await cfgSet('activeChofer',name);toast('✓ Chofer: '+name);
+  await cfgSet('activeChofer',name);
+  toast('✓ Chofer: '+name);
+  // Si la cámara estaba parada y hay chofer, iniciar automáticamente
+  if(!camOn)document.getElementById('btn-cam').classList.add('ready');
 }
 async function modalAdd(){
   const inp=document.getElementById('modal-new-ch');const v=inp.value.trim();if(!v)return;
   if(!choferes.includes(v)){choferes.push(v);await persistCfg();}
-  inp.value='';await selectChofer(v);renderSettings();
+  await selectChofer(v);renderSettings();
 }
 
 function updateChoferBox(){
   const has=!!activeChofer;
   document.getElementById('box-empty').style.display=has?'none':'block';
   document.getElementById('box-active').style.display=has?'flex':'none';
-  document.getElementById('btn-sel').style.display=has?'none':'block';
   if(has){
     document.getElementById('ch-av').textContent=ini(activeChofer);
     document.getElementById('ch-nm').textContent=activeChofer;
     const n=records.filter(r=>r.chofer===activeChofer&&r.fecha===today()).length;
-    document.getElementById('ch-sb').textContent=n+' guía'+(n!==1?'s':'')+' hoy';
+    document.getElementById('ch-sb').textContent=n+' guía'+(n!==1?'s':'')+' escaneadas hoy';
   }
 }
 
-/* ══════════════ CÁMARA ══════════════ */
+/* ══════════════════════════════════════
+   CÁMARA
+══════════════════════════════════════ */
 async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
 async function startCam(){
@@ -492,8 +723,9 @@ async function startCam(){
       {facingMode:facing},
       {
         fps:15,
-        qrbox:{width:270,height:105},
-        aspectRatio:1.7,
+        // Marco amplio para ver más del código
+        qrbox:(w,h)=>({width:Math.floor(w*0.85),height:Math.floor(h*0.5)}),
+        aspectRatio:1.6,
         formatsToSupport:[
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.QR_CODE,
@@ -515,17 +747,26 @@ async function startCam(){
       _=>{}
     );
     camOn=true;
-    document.getElementById('btn-cam').textContent='🔴 PARAR CÁMARA';
-    document.getElementById('btn-cam').className='btn btn-danger';
-    document.getElementById('cam-badge').textContent='🟢 EN VIVO · '+(facing==='environment'?'Trasera':'Frontal');
-  }catch(e){toast('Error cámara: '+e.message);console.error(e);}
+    const btn=document.getElementById('btn-cam');
+    btn.innerHTML='<span class="btn-icon">⏹</span> PARAR';
+    btn.className='btn btn-red';
+    const badge=document.getElementById('cam-badge');
+    badge.textContent='🟢 EN VIVO · '+(facing==='environment'?'Cámara trasera':'Cámara frontal');
+    badge.className='cam-badge live';
+  }catch(e){
+    toast('Error cámara: '+e.message);
+    console.error(e);
+  }
 }
 async function stopCam(){
   if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
   camOn=false;
-  document.getElementById('btn-cam').textContent='▶ INICIAR CÁMARA';
-  document.getElementById('btn-cam').className='btn btn-primary';
-  document.getElementById('cam-badge').textContent='Cámara apagada';
+  const btn=document.getElementById('btn-cam');
+  btn.innerHTML='<span class="btn-icon">▶</span> INICIAR';
+  btn.className='btn btn-primary';
+  const badge=document.getElementById('cam-badge');
+  badge.textContent='📵 Cámara apagada';
+  badge.className='cam-badge';
 }
 async function switchCam(){
   facing=facing==='environment'?'user':'environment';
@@ -541,7 +782,9 @@ async function toggleTorch(){
   }catch(e){toast('Linterna no disponible');torchOn=false;}
 }
 
-/* ══════════════ ESCANEO ══════════════ */
+/* ══════════════════════════════════════
+   ESCANEO
+══════════════════════════════════════ */
 function handleScan(code){
   const now=Date.now();
   const pause=parseInt(document.getElementById('set-pause').value)||1200;
@@ -550,24 +793,40 @@ function handleScan(code){
   addRecord(code,'BARCODE/QR');
 }
 
-/* ══════════════ AGREGAR REGISTRO ══════════════ */
+/* ══════════════════════════════════════
+   AGREGAR REGISTRO
+══════════════════════════════════════ */
 async function addRecord(code,type){
   code=code.trim();if(!code)return;
+
+  // DUPLICADO
   if(document.getElementById('set-dedup').checked&&guidSet.has(code)){
-    dupCount++;showFlash('⚠ DUPLICADO: '+code,'dup');updateStats();cfgSet('dupCount',dupCount);return;
+    dupCount++;
+    showFlash('⚠ DUPLICADO: '+code,'dup');
+    updateStats();
+    cfgSet('dupCount',dupCount);
+    if(document.getElementById('set-beep').checked)beepError();
+    if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([80,40,80]);
+    return;
   }
   if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
+
   const rec={
     id:Date.now()+'_'+Math.random().toString(36).slice(2,6),
     guia:code,tipo:type,chofer:activeChofer,
     fecha:today(),hora:new Date().toLocaleTimeString('es-MX'),timestamp:Date.now()
   };
   extraCols.forEach(c=>{rec[c]='';});
-  records.unshift(rec);guidSet.add(code);
-  await persistRec(rec);
-  if(document.getElementById('set-beep').checked)beep();
-  if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(55);
-  showFlash('✓ '+code,'ok');updateStats();updateChoferBox();renderRecents();
+  records.unshift(rec);
+  guidSet.add(code);
+
+  await persistRec(rec); // ← INMEDIATO
+
+  if(document.getElementById('set-beep').checked)beepOK();
+  if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(60);
+  showFlash('✓ '+code,'ok');
+  updateStats();updateChoferBox();renderRecents();
+
   const ab=parseInt(document.getElementById('set-ab').value)||0;
   if(ab>0&&records.length%ab===0)exportBackupJSON(true);
 }
@@ -578,18 +837,26 @@ function addManual(){
 }
 document.getElementById('manual-in').addEventListener('keydown',e=>{if(e.key==='Enter')addManual();});
 
-/* ══════════════ RECIENTES ══════════════ */
+/* ══════════════════════════════════════
+   RECIENTES
+══════════════════════════════════════ */
 function renderRecents(){
   const el=document.getElementById('recents');
   const last=records.slice(0,6);
-  if(!last.length){el.innerHTML='<div style="color:var(--text2);font-size:0.72rem;padding:4px 0">Aún no hay guías escaneadas</div>';return;}
+  if(!last.length){
+    el.innerHTML='<div style="color:var(--text2);font-size:0.75rem;padding:6px 0;font-weight:600">Aún no hay guías escaneadas</div>';
+    return;
+  }
   el.innerHTML=last.map(r=>`<div class="recent-item">
     <div class="recent-code">${esc(r.guia)}</div>
+    <div class="recent-ch">${esc(r.chofer||'—')}</div>
     <div class="recent-time">${r.hora}</div>
   </div>`).join('');
 }
 
-/* ══════════════ STATS ══════════════ */
+/* ══════════════════════════════════════
+   STATS
+══════════════════════════════════════ */
 function updateStats(){
   const t=today();
   const chs=new Set(records.filter(r=>r.chofer).map(r=>r.chofer));
@@ -600,13 +867,17 @@ function updateStats(){
   document.getElementById('hdr-cnt').textContent=records.length+' guías';
 }
 
-/* ══════════════ FLASH ══════════════ */
+/* ══════════════════════════════════════
+   FLASH
+══════════════════════════════════════ */
 function showFlash(msg,cls){
   const el=document.getElementById('flash');el.textContent=msg;el.className='flash show '+cls;
   clearTimeout(el._t);el._t=setTimeout(()=>el.classList.remove('show'),1800);
 }
 
-/* ══════════════ TABLA ══════════════ */
+/* ══════════════════════════════════════
+   TABLA
+══════════════════════════════════════ */
 function renderTable(){
   const q=(document.getElementById('search-in').value||'').toLowerCase();
   let rows=records.filter(r=>{
@@ -621,7 +892,7 @@ function renderTable(){
     ?[`<span class="ch-pill${!filterCh?' active':''}" onclick="setFilter(null)">Todos (${records.length})</span>`,
       ...chs.map(c=>{const n=records.filter(r=>r.chofer===c).length;
         return`<span class="ch-pill${filterCh===c?' active':''}" onclick="setFilter('${escA(c)}')">${esc(c)} (${n})</span>`;})
-     ].join(''):'';
+    ].join(''):'';
 
   const base=['guia','tipo','chofer','fecha','hora'];
   const all=[...base,...extraCols];
@@ -630,18 +901,18 @@ function renderTable(){
     <th></th></tr>`;
 
   const body=document.getElementById('tbl-body');
-  if(!rows.length){body.innerHTML=`<tr><td colspan="${all.length+1}"><div class="empty-state"><div style="font-size:2rem">📦</div><div>Sin guías</div></div></td></tr>`;return;}
+  if(!rows.length){body.innerHTML=`<tr><td colspan="${all.length+1}"><div class="empty-state">📦<br>Sin guías</div></td></tr>`;return;}
   const show=rows.slice(0,300);
   body.innerHTML=show.map(r=>`<tr>
     ${base.map(c=>c==='tipo'
-      ?`<td><span style="font-size:0.6rem;background:rgba(0,229,255,.12);color:var(--accent);padding:2px 7px;border-radius:10px">${r.tipo||'—'}</span></td>`
+      ?`<td><span style="font-size:0.6rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:700">${r.tipo||'—'}</span></td>`
       :`<td title="${escA(r[c]||'')}">${esc(r[c])||'—'}</td>`).join('')}
     ${extraCols.map(c=>`<td><input type="text" value="${escA(r[c]||'')}"
-      style="background:none;border:none;color:var(--text);font-family:var(--font);font-size:0.72rem;width:100%;min-width:50px"
+      style="background:none;border:none;color:var(--text);font-family:var(--mono);font-size:0.72rem;width:100%;min-width:50px;outline:none"
       onchange="updateField('${r.id}','${c}',this.value)"></td>`).join('')}
     <td><button class="del-btn" onclick="deleteRecord('${r.id}')">✕</button></td>
   </tr>`).join('');
-  if(rows.length>300)body.innerHTML+=`<tr><td colspan="${all.length+1}" style="text-align:center;padding:10px;color:var(--text2);font-size:0.68rem">Mostrando 300/${rows.length} — usa el buscador para filtrar</td></tr>`;
+  if(rows.length>300)body.innerHTML+=`<tr><td colspan="${all.length+1}" style="text-align:center;padding:12px;color:var(--text2);font-size:0.7rem;font-weight:700">Mostrando 300/${rows.length} — filtra para ver más</td></tr>`;
 }
 
 function setFilter(c){filterCh=c;renderTable();}
@@ -653,7 +924,7 @@ async function deleteRecord(id){
 }
 async function clearAll(everything=false){
   const msg=everything
-    ?'¿Borrar ABSOLUTAMENTE TODO?\nRegistros + choferes + configuración.\nEsto es irreversible.'
+    ?'¿Borrar ABSOLUTAMENTE TODO?\nRegistros + choferes + configuración. Irreversible.'
     :'¿Borrar todos los registros?\n\nDescarga un backup antes si necesitas los datos.';
   if(!confirm(msg))return;
   records=[];guidSet=new Set();dupCount=0;
@@ -665,26 +936,28 @@ async function clearAll(everything=false){
   toast('Borrado ✓');
 }
 
-/* ══════════════ SETTINGS ══════════════ */
+/* ══════════════════════════════════════
+   SETTINGS
+══════════════════════════════════════ */
 function renderSettings(){
   document.getElementById('ch-count').textContent=choferes.length;
   document.getElementById('ch-list').innerHTML=choferes.map((c,i)=>`
     <div class="col-item">
-      <input class="input-text" value="${escA(c)}" onchange="choferes[${i}]=this.value;persistCfg()" style="padding:7px 10px;font-size:0.78rem">
-      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px;font-size:0.75rem" onclick="removeChofer(${i})">✕</button>
+      <input class="input-text" value="${escA(c)}" onchange="choferes[${i}]=this.value;persistCfg()" style="padding:8px 10px;font-size:0.82rem">
+      <button class="btn btn-red" style="flex:0 0 auto;padding:9px 13px;font-size:0.8rem" onclick="removeChofer(${i})">✕</button>
     </div>`).join('');
   document.getElementById('col-list').innerHTML=extraCols.map((c,i)=>`
     <div class="col-item">
-      <input class="input-text" value="${escA(c)}" onchange="extraCols[${i}]=this.value;persistCfg()" style="padding:7px 10px;font-size:0.78rem">
-      <button class="btn btn-danger" style="flex:0 0 auto;padding:7px 12px;font-size:0.75rem" onclick="removeCol(${i})">✕</button>
+      <input class="input-text" value="${escA(c)}" onchange="extraCols[${i}]=this.value;persistCfg()" style="padding:8px 10px;font-size:0.82rem">
+      <button class="btn btn-red" style="flex:0 0 auto;padding:9px 13px;font-size:0.8rem" onclick="removeCol(${i})">✕</button>
     </div>`).join('');
   document.getElementById('db-info').innerHTML=`
     <div class="abox ${dbOK?'abox-ok':'abox-err'}">
       ${dbOK?'✅ IndexedDB ACTIVO — Datos protegidos':'❌ IndexedDB no disponible'}<br>
-      Cerrar o recargar la página <strong>NO borra los datos</strong>.<br>
+      Refrescar / cerrar la página <strong>NO borra los datos</strong>.<br>
       ${records.length} registros · ${choferes.length} choferes
     </div>
-    <div class="abox abox-warn">⚠ Solo puede borrar datos: "Borrar datos del sitio" en ajustes del navegador.<br>Descarga <strong>Backup JSON</strong> al terminar el día.</div>`;
+    <div class="abox abox-warn">⚠ Solo borra datos: <strong>"Borrar datos del sitio"</strong> en ajustes del navegador.<br>Descarga Backup JSON al terminar el día por seguridad.</div>`;
 }
 async function addChofer(){
   const inp=document.getElementById('new-ch-in');const v=inp.value.trim();if(!v)return;
@@ -704,89 +977,149 @@ async function addCol(){
 }
 async function removeCol(i){const col=extraCols[i];extraCols.splice(i,1);records.forEach(r=>delete r[col]);await persistCfg();renderSettings();}
 
-/* ══════════════ EXPORT ══════════════ */
-const getHdr=()=>['guia','tipo','chofer','fecha','hora',...extraCols];
-const dl=(name,content,type)=>{
-  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type}));
-  a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);
-};
+/* ══════════════════════════════════════
+   EXPORT — EXCEL (formato como tu ejemplo)
+   Choferes en columna A, B, C... sin espacios
+   Fila 1: nombre del chofer
+   Fila 2+: sus guías
+══════════════════════════════════════ */
+function buildExcelChoferColumns(){
+  // Agrupar guías por chofer en orden de registro
+  const chMap={};
+  records.forEach(r=>{
+    const c=r.chofer||'Sin asignar';
+    if(!chMap[c])chMap[c]=[];
+    chMap[c].push(r.guia);
+  });
+  const chNames=Object.keys(chMap);
+  const maxRows=Math.max(...chNames.map(c=>chMap[c].length));
 
-function renderExport(){
-  document.getElementById('exp-cnt').textContent=records.length;
-  const chs=new Set(records.map(r=>r.chofer).filter(Boolean));
-  document.getElementById('exp-chs').textContent=chs.size;
-  const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';chMap[c]=(chMap[c]||0)+1;});
-  document.getElementById('ch-summary').innerHTML=Object.keys(chMap).length
-    ?Object.entries(chMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:0.8rem">
-        <span>👤 ${esc(c)}</span><span style="color:var(--accent);font-weight:700">${n} guías</span></div>`).join('')
-    :'<div style="color:var(--text2);font-size:0.75rem;padding:8px 0">Sin datos</div>';
+  // Construir matriz: fila 0 = nombres, filas 1..N = guías
+  const matrix=[];
+  // Encabezados
+  matrix.push(chNames);
+  // Guías
+  for(let i=0;i<maxRows;i++){
+    matrix.push(chNames.map(c=>chMap[c][i]!==undefined?chMap[c][i]:''));
+  }
+  return{matrix,chMap,chNames};
 }
 
 function exportExcel(){
   if(!records.length){toast('No hay datos');return;}
   const wb=XLSX.utils.book_new();
-  const hdr=getHdr();
-  // Hoja global
-  const wsAll=XLSX.utils.aoa_to_sheet([hdr.map(h=>h.toUpperCase()),...records.map(r=>hdr.map(h=>r[h]||''))]);
-  wsAll['!cols']=hdr.map(()=>({wch:26}));
-  XLSX.utils.book_append_sheet(wb,wsAll,'TODAS LAS GUÍAS');
-  // Hoja por chofer con numeración
-  const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';if(!chMap[c])chMap[c]=[];chMap[c].push(r);});
-  Object.entries(chMap).forEach(([ch,rows])=>{
-    const chHdr=['N°','GUÍA','TIPO','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
-    const data=rows.map((r,i)=>[i+1,r.guia,r.tipo||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')]);
-    const ws=XLSX.utils.aoa_to_sheet([chHdr,...data]);
-    ws['!cols']=chHdr.map(()=>({wch:24}));
+  const {matrix,chMap,chNames}=buildExcelChoferColumns();
+
+  // ── Hoja 1: GUÍAS POR CHOFER (columnas, como tu ejemplo) ──
+  const ws1=XLSX.utils.aoa_to_sheet(matrix);
+  // Ancho de columnas
+  ws1['!cols']=chNames.map(()=>({wch:22}));
+  XLSX.utils.book_append_sheet(wb,ws1,'Guías por Chofer');
+
+  // ── Hoja 2: DETALLE COMPLETO (todas las columnas) ──
+  const hdr=['GUÍA','TIPO','CHOFER','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
+  const ws2=XLSX.utils.aoa_to_sheet([hdr,...records.map(r=>[r.guia,r.tipo||'',r.chofer||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')])]);
+  ws2['!cols']=hdr.map(()=>({wch:24}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Detalle Completo');
+
+  // ── Hoja por cada chofer ──
+  Object.entries(chMap).forEach(([ch,guias])=>{
+    const data=[['N°','GUÍA',...extraCols.map(c=>c.toUpperCase())],...guias.map((g,i)=>[i+1,g,...extraCols.map(c=>{const r=records.find(r=>r.guia===g&&r.chofer===ch);return r?r[c]||'':'';})])];
+    const ws=XLSX.utils.aoa_to_sheet(data);
+    ws['!cols']=[{wch:6},{wch:24},...extraCols.map(()=>({wch:20}))];
     XLSX.utils.book_append_sheet(wb,ws,ch.substring(0,31));
   });
-  // Hoja resumen
-  const sumData=Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,rows])=>[ch,rows.length,[...new Set(rows.map(r=>r.fecha))].join(', ')]);
-  const wsSum=XLSX.utils.aoa_to_sheet([['CHOFER','TOTAL GUÍAS','FECHAS'],...sumData]);
-  wsSum['!cols']=[{wch:30},{wch:14},{wch:40}];
-  XLSX.utils.book_append_sheet(wb,wsSum,'RESUMEN');
+
+  // ── Hoja RESUMEN ──
+  const sumData=[['CHOFER','TOTAL GUÍAS','FECHAS'],...Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,gs])=>[ch,gs.length,[...new Set(records.filter(r=>r.chofer===ch).map(r=>r.fecha))].join(', ')])];
+  const wsSum=XLSX.utils.aoa_to_sheet(sumData);
+  wsSum['!cols']=[{wch:28},{wch:14},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,wsSum,'Resumen');
+
   XLSX.writeFile(wb,`guias_${today().replace(/\//g,'-')}.xlsx`);
   toast('Excel descargado ✓');
 }
+
+/* ══════════════════════════════════════
+   WHATSAPP — descarga + abre WhatsApp
+══════════════════════════════════════ */
+function sendWhatsApp(){
+  if(!records.length){toast('No hay datos para exportar');return;}
+  // 1. Descargar el Excel
+  exportExcel();
+  // 2. Pequeño delay para que el archivo descargue, luego abrir WhatsApp
+  setTimeout(()=>{
+    const msg=encodeURIComponent(
+      `📦 *Guías escaneadas* — ${today()}\n\n`+
+      `• Total: *${records.length}* guías\n`+
+      `• Choferes: *${new Set(records.map(r=>r.chofer).filter(Boolean)).size}*\n\n`+
+      Object.entries(records.reduce((acc,r)=>{const c=r.chofer||'Sin asignar';acc[c]=(acc[c]||0)+1;return acc;},{}))
+        .sort((a,b)=>b[1]-a[1])
+        .map(([c,n])=>`👤 ${c}: *${n}*`)
+        .join('\n')+
+      `\n\n_Archivo Excel adjunto_`
+    );
+    window.open(`https://wa.me/?text=${msg}`,'_blank');
+  },1200);
+  toast('Descargando Excel... abre WhatsApp para compartirlo');
+}
+
+/* ══════════════════════════════════════
+   COPIAR SOLO GUÍAS
+══════════════════════════════════════ */
+async function copyGuiasOnly(){
+  if(!records.length){toast('No hay datos');return;}
+  // Solo los números de guía, una por línea, del chofer activo o todos
+  const guias=filterCh
+    ?records.filter(r=>r.chofer===filterCh).map(r=>r.guia)
+    :records.map(r=>r.guia);
+  await navigator.clipboard.writeText(guias.join('\n'));
+  toast(`✓ ${guias.length} guías copiadas`);
+}
+
 function exportCSV(){
   if(!records.length){toast('No hay datos');return;}
-  const hdr=getHdr();
+  const hdr=['guia','tipo','chofer','fecha','hora',...extraCols];
+  const dl=(name,c,t)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),5000);};
   dl(`guias_${today().replace(/\//g,'-')}.csv`,
     '\uFEFF'+[hdr.join(','),...records.map(r=>hdr.map(h=>`"${(r[h]||'').toString().replace(/"/g,'""')}"`).join(','))].join('\n'),
-    'text/csv;charset=utf-8');toast('CSV descargado ✓');
+    'text/csv;charset=utf-8');toast('CSV ✓');
 }
-function exportJSON(){if(!records.length){toast('No hay datos');return;}dl(`guias_${today().replace(/\//g,'-')}.json`,JSON.stringify(records,null,2),'application/json');toast('JSON ✓');}
-function exportTXT(){if(!records.length){toast('No hay datos');return;}dl(`guias_${today().replace(/\//g,'-')}.txt`,records.map(r=>r.guia).join('\n'),'text/plain');toast('TXT ✓');}
+function exportJSON(){
+  if(!records.length){toast('No hay datos');return;}
+  exportBackupJSON();
+}
+function exportTXT(){
+  if(!records.length){toast('No hay datos');return;}
+  const dl=(n,c,t)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();};
+  dl(`guias_${today().replace(/\//g,'-')}.txt`,records.map(r=>r.guia).join('\n'),'text/plain');toast('TXT ✓');
+}
 function exportHTML(){
   if(!records.length){toast('No hay datos');return;}
-  const hdr=getHdr();
+  const dl=(n,c,t)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:t}));a.download=n;a.click();};
+  const hdr=['guia','tipo','chofer','fecha','hora',...extraCols];
   dl(`guias_${today().replace(/\//g,'-')}.html`,
     `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Guías ${today()}</title>
-<style>body{font-family:Arial;padding:20px;font-size:13px}h2{margin-bottom:16px}
-table{border-collapse:collapse;width:100%}th{background:#0a0e1a;color:#00e5ff;padding:10px 8px;text-align:left}
-td{padding:7px 8px;border-bottom:1px solid #eee}</style></head>
+<style>body{font-family:Arial;padding:20px;font-size:13px}h2{margin-bottom:16px}table{border-collapse:collapse;width:100%}th{background:#2563eb;color:#fff;padding:10px 8px;text-align:left}td{padding:7px 8px;border-bottom:1px solid #e2e8f0}</style></head>
 <body><h2>📦 Guías — ${today()} — ${records.length} registros — ${nowStr()}</h2>
 <table><thead><tr>${hdr.map(h=>`<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
 <tbody>${records.map(r=>`<tr>${hdr.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`,'text/html');
   toast('HTML ✓');
 }
-async function copyClip(){
-  if(!records.length){toast('No hay datos');return;}
-  const hdr=getHdr();
-  await navigator.clipboard.writeText([hdr.join('\t'),...records.map(r=>hdr.map(h=>r[h]||'').join('\t'))].join('\n'));
-  toast('Copiado ✓');
-}
 function exportBackupJSON(silent=false){
-  const data={version:4,exported:nowStr(),records,choferes,extraCols,dupCount,activeChofer};
-  dl(`backup_${Date.now()}.json`,JSON.stringify(data,null,2),'application/json');
-  if(!silent)toast('Backup ✓');
+  const data={version:5,exported:nowStr(),records,choferes,extraCols,dupCount,activeChofer};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download=`backup_${Date.now()}.json`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+  if(!silent)toast('Backup JSON ✓');
 }
 async function importBackup(event){
   const file=event.target.files[0];if(!file)return;
   try{
     const data=JSON.parse(await file.text());
     if(!data.records)throw new Error('Formato inválido');
-    if(!confirm(`Importar ${data.records.length} registros?\nExportado: ${data.exported||'?'}\n⚠ Reemplaza los datos actuales.`))return;
+    if(!confirm(`Importar ${data.records.length} registros?\nExportado: ${data.exported||'?'}\n⚠ Reemplaza datos actuales.`))return;
     records=data.records||[];choferes=data.choferes||[];extraCols=data.extraCols||[];
     dupCount=data.dupCount||0;activeChofer=data.activeChofer||'';
     guidSet=new Set(records.map(r=>r.guia));
@@ -797,32 +1130,78 @@ async function importBackup(event){
   event.target.value='';
 }
 
-/* ══════════════ BEEP ══════════════ */
+function renderExport(){
+  document.getElementById('exp-cnt').textContent=records.length;
+  const chs=new Set(records.map(r=>r.chofer).filter(Boolean));
+  document.getElementById('exp-chs').textContent=chs.size;
+  const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';chMap[c]=(chMap[c]||0)+1;});
+  document.getElementById('ch-summary').innerHTML=Object.keys(chMap).length
+    ?Object.entries(chMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--border2);font-size:0.82rem">
+        <span style="font-weight:700">👤 ${esc(c)}</span>
+        <span style="background:var(--accent);color:#fff;padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:800">${n} guías</span>
+      </div>`).join('')
+    :'<div style="color:var(--text2);font-size:0.78rem;padding:10px 0;font-weight:600">Sin datos todavía</div>';
+}
+
+/* ══════════════════════════════════════
+   AUDIO — Beep más fuerte + Error distinto
+══════════════════════════════════════ */
 let actx=null;
-function beep(){
+function getActx(){if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();return actx;}
+
+// Beep de éxito: tono limpio agudo
+function beepOK(){
   try{
-    if(!actx)actx=new(window.AudioContext||window.webkitAudioContext)();
-    const o=actx.createOscillator(),g=actx.createGain();
-    o.connect(g);g.connect(actx.destination);o.type='square';o.frequency.value=1400;
-    g.gain.setValueAtTime(0.07,actx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,actx.currentTime+0.09);
-    o.start();o.stop(actx.currentTime+0.09);
+    const c=getActx();
+    const o=c.createOscillator(),g=c.createGain();
+    o.connect(g);g.connect(c.destination);
+    o.type='sine';o.frequency.value=1600;
+    g.gain.setValueAtTime(0,c.currentTime);
+    g.gain.linearRampToValueAtTime(0.4,c.currentTime+0.01); // Más fuerte: 0.4
+    g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.15);
+    o.start(c.currentTime);o.stop(c.currentTime+0.15);
   }catch(e){}
 }
 
-/* ══════════════ TOAST ══════════════ */
+// Beep de error/duplicado: dos tonos bajos
+function beepError(){
+  try{
+    const c=getActx();
+    [0, 0.18].forEach((delay,i)=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.type='square';
+      o.frequency.value=i===0?400:350;
+      g.gain.setValueAtTime(0,c.currentTime+delay);
+      g.gain.linearRampToValueAtTime(0.35,c.currentTime+delay+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+delay+0.14);
+      o.start(c.currentTime+delay);o.stop(c.currentTime+delay+0.14);
+    });
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════
+   TOAST
+══════════════════════════════════════ */
 let tT;
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
-  clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),2400);
+  clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),2600);
 }
 
-/* ══════════════ INIT ══════════════ */
+/* ══════════════════════════════════════
+   INIT
+══════════════════════════════════════ */
 async function init(){
   try{
     await openDB();
-    records=await idbGetAll('records');records.sort((a,b)=>b.timestamp-a.timestamp);
-    choferes=await cfgGet('choferes',[]);extraCols=await cfgGet('extraCols',[]);
-    dupCount=await cfgGet('dupCount',0);activeChofer=await cfgGet('activeChofer','');
+    records=await idbGetAll('records');
+    records.sort((a,b)=>b.timestamp-a.timestamp);
+    choferes=await cfgGet('choferes',[]);
+    extraCols=await cfgGet('extraCols',[]);
+    dupCount=await cfgGet('dupCount',0);
+    activeChofer=await cfgGet('activeChofer','');
     guidSet=new Set(records.map(r=>r.guia));
     setDbPill('ok','💾 OK');
     if(records.length)toast('✓ '+records.length+' guías cargadas');
