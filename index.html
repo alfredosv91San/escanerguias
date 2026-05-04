@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="theme-color" content="#1a1f2e">
+<meta name="theme-color" content="#2563eb">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>EscanerGuías</title>
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -104,7 +106,7 @@ header {
   background:linear-gradient(135deg, var(--accent) 0%, #1d4ed8 100%);
   border-radius:var(--r);padding:16px;margin-bottom:12px;
   color:#fff;box-shadow:0 4px 20px rgba(37,99,235,.35);
-  position:relative;overflow:hidden;
+  position:relative;
 }
 .chofer-hero::before {
   content:'';position:absolute;top:-20px;right:-20px;
@@ -126,6 +128,9 @@ header {
   border-radius:var(--r-sm);color:#fff;font-family:var(--font);font-size:0.68rem;
   font-weight:700;padding:7px 12px;cursor:pointer;white-space:nowrap;
   letter-spacing:.5px;transition:all .15s;
+  position:relative;z-index:10;pointer-events:auto;
+  -webkit-tap-highlight-color:rgba(255,255,255,.3);
+  touch-action:manipulation;
 }
 .btn-change:active {background:rgba(255,255,255,.35)}
 
@@ -453,7 +458,17 @@ tr:hover td {background:var(--accent-light)}
     <div class="wa-big-icon">📲</div>
     <div class="wa-big-text">
       <div class="wa-big-title">Enviar Excel por WhatsApp</div>
-      <div class="wa-big-sub">Descarga el Excel y abre WhatsApp listo para compartir</div>
+      <div class="wa-big-sub">Comparte el archivo Excel directo a WhatsApp (en móvil) o descárgalo</div>
+    </div>
+    <span style="font-size:1.4rem;opacity:.8">›</span>
+  </button>
+
+  <!-- MANIFIESTO DESTACADO -->
+  <button class="wa-big" style="background:linear-gradient(135deg,#1e40af,#1d4ed8);box-shadow:0 4px 20px rgba(30,64,175,.35)" onclick="openManifiestoModal()">
+    <div class="wa-big-icon">🖨️</div>
+    <div class="wa-big-text">
+      <div class="wa-big-title">Imprimir Manifiesto</div>
+      <div class="wa-big-sub">Manifiesto con guías, totales y firma del chofer</div>
     </div>
     <span style="font-size:1.4rem;opacity:.8">›</span>
   </button>
@@ -558,6 +573,55 @@ tr:hover td {background:var(--accent-light)}
       </div>
     </div>
     <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL MANIFIESTO ══════ -->
+<div class="modal-bg" id="manifest-modal-bg">
+  <div class="modal" style="max-height:92vh;border-top-color:#1d4ed8">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🖨️ Imprimir Manifiesto</div>
+
+    <!-- Selector de chofer -->
+    <div style="margin-bottom:12px">
+      <div class="label-sm" style="margin-bottom:6px">Seleccionar chofer</div>
+      <select class="input-text" id="manifest-ch-select" onchange="renderManifestPreview()">
+        <option value="">— Todos los choferes —</option>
+      </select>
+    </div>
+
+    <!-- Empresa / encabezado -->
+    <div style="margin-bottom:12px">
+      <div class="label-sm" style="margin-bottom:6px">Nombre de empresa (opcional)</div>
+      <input class="input-text" id="manifest-empresa" type="text" placeholder="Ej: Paquetería Express SA" oninput="renderManifestPreview()">
+    </div>
+
+    <!-- Fecha filtro -->
+    <div style="margin-bottom:12px">
+      <div class="label-sm" style="margin-bottom:6px">Filtrar por fecha</div>
+      <select class="input-text" id="manifest-fecha-select" onchange="renderManifestPreview()">
+        <option value="">— Todas las fechas —</option>
+      </select>
+    </div>
+
+    <!-- Preview resumen -->
+    <div id="manifest-preview" style="background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--r-sm);padding:12px;margin-bottom:14px;font-size:0.78rem;line-height:1.7"></div>
+
+    <!-- Firma -->
+    <div style="margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div class="label-sm">Firma del chofer</div>
+        <button onclick="clearSignature()" style="background:none;border:1px solid var(--border2);border-radius:6px;padding:3px 10px;font-size:0.65rem;font-weight:700;color:var(--text2);cursor:pointer">Limpiar</button>
+      </div>
+      <canvas id="sig-canvas" width="460" height="140"
+        style="width:100%;height:140px;border:2px dashed var(--border);border-radius:var(--r-sm);background:#fff;touch-action:none;cursor:crosshair;display:block"></canvas>
+      <div style="font-size:0.6rem;color:var(--text2);margin-top:4px;text-align:center">Firma con el dedo o mouse</div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="printManifiesto()">🖨️ IMPRIMIR</button>
+      <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 18px" onclick="closeManifiestoModal()">✕</button>
+    </div>
   </div>
 </div>
 
@@ -668,15 +732,22 @@ function openModal(){
   if(!choferes.length){
     g.innerHTML=`<div class="abox abox-warn">No hay choferes registrados. Agrega uno abajo o ve a ⚙️ Config → Choferes.</div>`;
   } else {
-    g.innerHTML=choferes.map(c=>{
+    g.innerHTML=choferes.map((c,idx)=>{
       const n=records.filter(r=>r.chofer===c).length;
       const isActive=c===activeChofer;
-      return `<div class="ch-opt" onclick="selectChofer('${escA(c)}')" style="${isActive?'border-color:var(--accent);background:var(--accent-light)':''}">
+      return `<div class="ch-opt" data-chofer-idx="${idx}" style="${isActive?'border-color:var(--accent);background:var(--accent-light)':''}">
         <div class="ch-opt-av">${ini(c)}</div>
         <div style="flex:1"><div class="ch-opt-name">${esc(c)}${isActive?' ✓':''}</div><div class="ch-opt-sub">${n} guía${n!==1?'s':''} registradas</div></div>
         <div class="ch-opt-count">${n}</div>
       </div>`;
     }).join('');
+    // Attach click via event delegation to avoid escaping issues
+    g.querySelectorAll('.ch-opt[data-chofer-idx]').forEach(el=>{
+      el.addEventListener('click',()=>{
+        const idx=parseInt(el.dataset.choferIdx);
+        selectChofer(choferes[idx]);
+      });
+    });
   }
   document.getElementById('modal-bg').classList.add('show');
   document.getElementById('modal-new-ch').value='';
@@ -1041,27 +1112,62 @@ function exportExcel(){
 }
 
 /* ══════════════════════════════════════
-   WHATSAPP — descarga + abre WhatsApp
+   WHATSAPP — Web Share API (adjunta el archivo real en móvil)
+   Si no está disponible, descarga Excel + abre WhatsApp con texto
 ══════════════════════════════════════ */
-function sendWhatsApp(){
+async function sendWhatsApp(){
   if(!records.length){toast('No hay datos para exportar');return;}
-  // 1. Descargar el Excel
+
+  // Construir mensaje de resumen
+  const resumen=
+    `📦 *Guías escaneadas* — ${today()}\n\n`+
+    `• Total: *${records.length}* guías\n`+
+    `• Choferes: *${new Set(records.map(r=>r.chofer).filter(Boolean)).size}*\n\n`+
+    Object.entries(records.reduce((acc,r)=>{const c=r.chofer||'Sin asignar';acc[c]=(acc[c]||0)+1;return acc;},{}))
+      .sort((a,b)=>b[1]-a[1])
+      .map(([c,n])=>`👤 ${c}: *${n}*`)
+      .join('\n');
+
+  // Intentar Web Share API con archivo (funciona en Android/iOS Chrome/Safari)
+  if(navigator.canShare){
+    try{
+      // Generar el archivo Excel como blob
+      const wb=XLSX.utils.book_new();
+      const {matrix,chMap,chNames}=buildExcelChoferColumns();
+      const ws1=XLSX.utils.aoa_to_sheet(matrix);
+      ws1['!cols']=chNames.map(()=>({wch:22}));
+      XLSX.utils.book_append_sheet(wb,ws1,'Guías por Chofer');
+      const hdr=['GUÍA','TIPO','CHOFER','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
+      const ws2=XLSX.utils.aoa_to_sheet([hdr,...records.map(r=>[r.guia,r.tipo||'',r.chofer||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')])]);
+      ws2['!cols']=hdr.map(()=>({wch:24}));
+      XLSX.utils.book_append_sheet(wb,ws2,'Detalle Completo');
+      const wbOut=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+      const blob=new Blob([wbOut],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+      const fileName=`guias_${today().replace(/\//g,'-')}.xlsx`;
+      const file=new File([blob],fileName,{type:blob.type});
+
+      if(navigator.canShare({files:[file]})){
+        await navigator.share({
+          title:'Guías escaneadas',
+          text:resumen,
+          files:[file]
+        });
+        toast('✓ Compartido por WhatsApp');
+        return;
+      }
+    }catch(e){
+      if(e.name==='AbortError')return; // Usuario canceló
+      // Si falla, caer al método alternativo
+    }
+  }
+
+  // Método alternativo: descargar Excel + abrir WhatsApp con texto
   exportExcel();
-  // 2. Pequeño delay para que el archivo descargue, luego abrir WhatsApp
   setTimeout(()=>{
-    const msg=encodeURIComponent(
-      `📦 *Guías escaneadas* — ${today()}\n\n`+
-      `• Total: *${records.length}* guías\n`+
-      `• Choferes: *${new Set(records.map(r=>r.chofer).filter(Boolean)).size}*\n\n`+
-      Object.entries(records.reduce((acc,r)=>{const c=r.chofer||'Sin asignar';acc[c]=(acc[c]||0)+1;return acc;},{}))
-        .sort((a,b)=>b[1]-a[1])
-        .map(([c,n])=>`👤 ${c}: *${n}*`)
-        .join('\n')+
-      `\n\n_Archivo Excel adjunto_`
-    );
+    const msg=encodeURIComponent(resumen+'\n\n_Adjunta el archivo Excel descargado_');
     window.open(`https://wa.me/?text=${msg}`,'_blank');
+    toast('Excel descargado — adjúntalo manualmente en WhatsApp');
   },1200);
-  toast('Descargando Excel... abre WhatsApp para compartirlo');
 }
 
 /* ══════════════════════════════════════
@@ -1135,13 +1241,25 @@ function renderExport(){
   const chs=new Set(records.map(r=>r.chofer).filter(Boolean));
   document.getElementById('exp-chs').textContent=chs.size;
   const chMap={};records.forEach(r=>{const c=r.chofer||'Sin asignar';chMap[c]=(chMap[c]||0)+1;});
-  document.getElementById('ch-summary').innerHTML=Object.keys(chMap).length
-    ?Object.entries(chMap).sort((a,b)=>b[1]-a[1]).map(([c,n])=>
-      `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--border2);font-size:0.82rem">
-        <span style="font-weight:700">👤 ${esc(c)}</span>
-        <span style="background:var(--accent);color:#fff;padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:800">${n} guías</span>
-      </div>`).join('')
-    :'<div style="color:var(--text2);font-size:0.78rem;padding:10px 0;font-weight:600">Sin datos todavía</div>';
+  const sumEl=document.getElementById('ch-summary');
+  if(!Object.keys(chMap).length){
+    sumEl.innerHTML='<div style="color:var(--text2);font-size:0.78rem;padding:10px 0;font-weight:600">Sin datos todavía</div>';
+    return;
+  }
+  sumEl.innerHTML=Object.entries(chMap).sort((a,b)=>b[1]-a[1]).map(([c,n],idx)=>
+    `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1.5px solid var(--border2);gap:8px">
+      <span style="font-weight:700;font-size:0.82rem">👤 ${esc(c)}</span>
+      <span style="background:var(--accent);color:#fff;padding:3px 12px;border-radius:20px;font-size:0.72rem;font-weight:800;flex-shrink:0">${n} guías</span>
+      <button data-print-ch="${idx}" style="background:#1d4ed8;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:0.65rem;font-weight:800;cursor:pointer;flex-shrink:0;letter-spacing:.5px">🖨️ IMPRIMIR</button>
+    </div>`).join('');
+  // Event delegation for print buttons
+  const chNames=Object.keys(chMap).sort((a,b)=>chMap[b]-chMap[a]);
+  sumEl.querySelectorAll('[data-print-ch]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      const idx=parseInt(btn.dataset.printCh);
+      printChofer(chNames[idx]);
+    });
+  });
 }
 
 /* ══════════════════════════════════════
@@ -1182,8 +1300,243 @@ function beepError(){
 }
 
 /* ══════════════════════════════════════
-   TOAST
+   MANIFIESTO + FIRMA
 ══════════════════════════════════════ */
+let sigDrawing=false,sigCtx=null,sigHasMark=false;
+
+function initSignatureCanvas(){
+  const canvas=document.getElementById('sig-canvas');
+  if(!canvas||canvas._sigInit)return;
+  canvas._sigInit=true;
+  sigCtx=canvas.getContext('2d');
+  sigCtx.strokeStyle='#0f172a';
+  sigCtx.lineWidth=2.5;
+  sigCtx.lineCap='round';
+  sigCtx.lineJoin='round';
+
+  const pos=(e)=>{
+    const r=canvas.getBoundingClientRect();
+    const scaleX=canvas.width/r.width;
+    const scaleY=canvas.height/r.height;
+    const src=e.touches?e.touches[0]:e;
+    return{x:(src.clientX-r.left)*scaleX,y:(src.clientY-r.top)*scaleY};
+  };
+  canvas.addEventListener('mousedown',e=>{sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);});
+  canvas.addEventListener('mousemove',e=>{if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHasMark=true;});
+  canvas.addEventListener('mouseup',()=>sigDrawing=false);
+  canvas.addEventListener('mouseleave',()=>sigDrawing=false);
+  canvas.addEventListener('touchstart',e=>{e.preventDefault();sigDrawing=true;const p=pos(e);sigCtx.beginPath();sigCtx.moveTo(p.x,p.y);},{passive:false});
+  canvas.addEventListener('touchmove',e=>{e.preventDefault();if(!sigDrawing)return;const p=pos(e);sigCtx.lineTo(p.x,p.y);sigCtx.stroke();sigHasMark=true;},{passive:false});
+  canvas.addEventListener('touchend',()=>sigDrawing=false);
+}
+
+function clearSignature(){
+  const canvas=document.getElementById('sig-canvas');
+  if(sigCtx)sigCtx.clearRect(0,0,canvas.width,canvas.height);
+  sigHasMark=false;
+}
+
+function openManifiestoModal(){
+  // Poblar selector de choferes
+  const sel=document.getElementById('manifest-ch-select');
+  sel.innerHTML='<option value="">— Todos los choferes —</option>'+
+    [...new Set(records.map(r=>r.chofer).filter(Boolean))].sort()
+      .map(c=>`<option value="${escA(c)}"${c===activeChofer?'selected':''}>${esc(c)}</option>`).join('');
+
+  // Poblar selector de fechas
+  const fsel=document.getElementById('manifest-fecha-select');
+  const fechas=[...new Set(records.map(r=>r.fecha).filter(Boolean))].sort().reverse();
+  fsel.innerHTML='<option value="">— Todas las fechas —</option>'+
+    fechas.map(f=>`<option value="${f}"${f===today()?'selected':''}>${f}</option>`).join('');
+
+  // Empresa guardada
+  const emp=localStorage.getItem('manifest_empresa')||'';
+  document.getElementById('manifest-empresa').value=emp;
+
+  document.getElementById('manifest-modal-bg').classList.add('show');
+  renderManifestPreview();
+  setTimeout(initSignatureCanvas,100);
+}
+
+function closeManifiestoModal(){
+  document.getElementById('manifest-modal-bg').classList.remove('show');
+}
+document.getElementById('manifest-modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('manifest-modal-bg'))closeManifiestoModal();
+});
+
+function getManifestRecords(){
+  const ch=document.getElementById('manifest-ch-select').value;
+  const fecha=document.getElementById('manifest-fecha-select').value;
+  return records.filter(r=>{
+    if(ch&&r.chofer!==ch)return false;
+    if(fecha&&r.fecha!==fecha)return false;
+    return true;
+  });
+}
+
+function renderManifestPreview(){
+  const recs=getManifestRecords();
+  const ch=document.getElementById('manifest-ch-select').value;
+  const fecha=document.getElementById('manifest-fecha-select').value;
+  const chofMap={};
+  recs.forEach(r=>{const c=r.chofer||'Sin asignar';chofMap[c]=(chofMap[c]||0)+1;});
+  const preview=document.getElementById('manifest-preview');
+  if(!recs.length){preview.innerHTML='<span style="color:var(--text2)">Sin guías para los filtros seleccionados</span>';return;}
+  preview.innerHTML=
+    `<div style="font-weight:800;color:var(--accent);margin-bottom:4px">📋 Vista previa del manifiesto</div>`+
+    `<div>📦 <strong>${recs.length}</strong> guías ${fecha?'del '+fecha:'(todas las fechas)'}</div>`+
+    (ch?'':`<div style="margin-top:6px">`+Object.entries(chofMap).sort((a,b)=>b[1]-a[1])
+      .map(([c,n])=>`👤 <strong>${esc(c)}</strong>: ${n} guías`).join(' &nbsp;·&nbsp; ')+'</div>')+
+    `<div style="margin-top:4px;color:var(--text2);font-size:0.7rem">Se generará 1 manifiesto${ch?` para ${esc(ch)}`:`por cada chofer (${Object.keys(chofMap).length})`}</div>`;
+}
+
+function printManifiesto(){
+  const empresa=document.getElementById('manifest-empresa').value.trim();
+  if(empresa)localStorage.setItem('manifest_empresa',empresa);
+
+  const ch=document.getElementById('manifest-ch-select').value;
+  const fecha=document.getElementById('manifest-fecha-select').value;
+  const allRecs=getManifestRecords();
+  if(!allRecs.length){toast('Sin guías para imprimir');return;}
+
+  // Obtener imagen de firma
+  const canvas=document.getElementById('sig-canvas');
+  const sigImg=sigHasMark?canvas.toDataURL('image/png'):'';
+
+  // Agrupar por chofer
+  const chofMap={};
+  allRecs.forEach(r=>{const c=r.chofer||'Sin asignar';if(!chofMap[c])chofMap[c]=[];chofMap[c].push(r);});
+
+  const manifiestos=Object.entries(chofMap).map(([chName,recs])=>buildManifiestoHTML(chName,recs,empresa,fecha,sigImg)).join('<div style="page-break-after:always"></div>');
+
+  const win=window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Manifiesto — ${fecha||today()}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;font-size:12px;color:#0f172a;background:#fff}
+.manifest{padding:24px 28px;max-width:800px;margin:0 auto}
+.hdr{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #2563eb;padding-bottom:12px;margin-bottom:14px}
+.hdr-left h1{font-size:20px;font-weight:900;color:#2563eb;margin-bottom:2px}
+.hdr-left .sub{font-size:11px;color:#475569}
+.hdr-right{text-align:right;font-size:11px;color:#475569;line-height:1.8}
+.hdr-right strong{font-size:13px;color:#0f172a}
+.info-row{display:flex;gap:12px;margin-bottom:12px}
+.info-box{flex:1;border:1.5px solid #c7d7ff;border-radius:8px;padding:10px 12px;background:#f0f4ff}
+.info-box .lbl{font-size:9px;font-weight:700;color:#2563eb;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.info-box .val{font-size:15px;font-weight:900;color:#0f172a}
+.info-box .val-sm{font-size:12px;font-weight:700;color:#0f172a}
+table{width:100%;border-collapse:collapse;margin-bottom:16px;font-size:11px}
+thead th{background:#2563eb;color:#fff;padding:7px 8px;text-align:left;font-size:10px;letter-spacing:.5px}
+tbody tr:nth-child(even){background:#f8faff}
+tbody td{padding:6px 8px;border-bottom:1px solid #e2e8f0}
+.num-col{width:36px;text-align:center;font-weight:700;color:#2563eb}
+.footer{border-top:2px solid #e2e8f0;padding-top:16px;margin-top:8px}
+.sig-area{display:flex;gap:24px;align-items:flex-end}
+.sig-box{flex:1}
+.sig-lbl{font-size:9px;font-weight:700;color:#475569;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.sig-img{width:100%;height:90px;border-bottom:2px solid #0f172a;display:flex;align-items:flex-end;justify-content:center;padding-bottom:4px}
+.sig-img img{max-height:80px;max-width:100%;object-fit:contain}
+.sig-line{border-bottom:2px solid #0f172a;height:90px}
+.sig-name{font-size:10px;font-weight:700;text-align:center;margin-top:4px;color:#0f172a}
+.stamp-box{width:120px;height:100px;border:2px dashed #c7d7ff;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px;font-weight:700;text-align:center}
+.totals-row{display:flex;gap:8px;margin-bottom:14px}
+.total-pill{flex:1;background:#2563eb;color:#fff;border-radius:8px;padding:8px 10px;text-align:center}
+.total-pill .n{font-size:22px;font-weight:900;line-height:1}
+.total-pill .l{font-size:9px;opacity:.85;margin-top:2px;letter-spacing:1px;text-transform:uppercase}
+@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}button{display:none}}
+</style></head><body>${manifiestos}
+<script>window.onload=()=>{window.print();}<\/script>
+</body></html>`);
+  win.document.close();
+  toast('✓ Abriendo manifiesto para imprimir');
+  closeManifiestoModal();
+}
+
+function buildManifiestoHTML(chName,recs,empresa,fecha,sigImg){
+  const fechaLabel=fecha||today();
+  const hoy=nowStr();
+  const guiaRows=recs.map((r,i)=>`<tr>
+    <td class="num-col">${i+1}</td>
+    <td style="font-family:monospace;font-weight:700">${esc(r.guia)}</td>
+    <td>${esc(r.tipo||'—')}</td>
+    <td>${esc(r.fecha||'—')}</td>
+    <td>${esc(r.hora||'—')}</td>
+    ${extraCols.map(c=>`<td>${esc(r[c]||'—')}</td>`).join('')}
+  </tr>`).join('');
+
+  const extraHeads=extraCols.map(c=>`<th>${c.toUpperCase()}</th>`).join('');
+
+  return `<div class="manifest">
+  <div class="hdr">
+    <div class="hdr-left">
+      <h1>📦 ${esc(empresa||'Manifiesto de Entrega')}</h1>
+      <div class="sub">${empresa?'Manifiesto de Entrega · ':''} Generado: ${hoy}</div>
+    </div>
+    <div class="hdr-right">
+      <div>Fecha: <strong>${fechaLabel}</strong></div>
+      <div>Chofer: <strong>${esc(chName)}</strong></div>
+      <div>Folio: <strong>${Date.now().toString().slice(-6)}</strong></div>
+    </div>
+  </div>
+
+  <div class="info-row">
+    <div class="info-box">
+      <div class="lbl">👤 Chofer</div>
+      <div class="val-sm">${esc(chName)}</div>
+    </div>
+    <div class="info-box">
+      <div class="lbl">📦 Total Guías</div>
+      <div class="val">${recs.length}</div>
+    </div>
+    <div class="info-box">
+      <div class="lbl">📅 Fecha</div>
+      <div class="val-sm">${fechaLabel}</div>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>#</th><th>GUÍA</th><th>TIPO</th><th>FECHA</th><th>HORA</th>${extraHeads}
+    </tr></thead>
+    <tbody>${guiaRows}</tbody>
+  </table>
+
+  <div class="footer">
+    <div class="sig-area">
+      <div class="sig-box">
+        <div class="sig-lbl">Firma del chofer</div>
+        <div class="sig-img">
+          ${sigImg?`<img src="${sigImg}" alt="firma">`:''}
+        </div>
+        <div class="sig-name">${esc(chName)}</div>
+      </div>
+      <div class="sig-box">
+        <div class="sig-lbl">Recibí conforme — ${recs.length} guías</div>
+        <div class="sig-line"></div>
+        <div class="sig-name">Firma y nombre del receptor</div>
+      </div>
+      <div class="stamp-box">SELLO<br>EMPRESA</div>
+    </div>
+  </div>
+</div>`;
+}
+
+// Botón imprimir desde resumen por chofer
+function printChofer(chName){
+  // Abre el modal y pre-selecciona el chofer
+  openManifiestoModal();
+  // Después de que el modal pobla el select, seleccionar el chofer
+  setTimeout(()=>{
+    const sel=document.getElementById('manifest-ch-select');
+    for(let i=0;i<sel.options.length;i++){
+      if(sel.options[i].value===chName){sel.selectedIndex=i;break;}
+    }
+    renderManifestPreview();
+  },50);
+}
+
 let tT;
 function toast(msg){
   const el=document.getElementById('toast');el.textContent=msg;el.classList.add('show');
@@ -1215,6 +1568,17 @@ async function init(){
 }
 window.addEventListener('DOMContentLoaded',init);
 window.addEventListener('beforeunload',()=>{if(dbOK)persistCfg();});
+
+// Registrar Service Worker para funcionamiento offline y PWA completa
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('./sw.js').then(reg=>{
+      console.log('SW registrado:', reg.scope);
+    }).catch(e=>{
+      console.log('SW error (normal en localhost):', e);
+    });
+  });
+}
 </script>
 </body>
 </html>
