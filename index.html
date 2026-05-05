@@ -9,7 +9,14 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>EscanerGuías</title>
-<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+if(typeof Html5Qrcode==='undefined'){
+  const s=document.createElement('script');
+  s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  document.head.appendChild(s);
+}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -393,10 +400,38 @@ tr:hover td {background:var(--accent-light)}
     </div>
   </div>
 
+  <!-- Modo iMile + Zona -->
+  <div style="display:flex;gap:8px;margin-bottom:8px;align-items:stretch">
+    <!-- Toggle iMile -->
+    <div id="imile-badge" onclick="toggleImileMode()" style="flex:1;background:var(--surface);border:2px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s">
+      <div style="font-size:1.3rem">📦</div>
+      <div style="flex:1">
+        <div style="font-size:0.7rem;font-weight:800;letter-spacing:.5px" id="imile-label">MODO iMile</div>
+        <div style="font-size:0.6rem;color:var(--text2)" id="imile-sub">Validación OFF</div>
+      </div>
+      <div id="imile-dot" style="width:12px;height:12px;border-radius:50%;background:var(--border);flex-shrink:0"></div>
+    </div>
+    <!-- Zona -->
+    <div style="flex:1;background:var(--surface);border:2px solid var(--border);border-radius:var(--r-sm);padding:8px 10px;display:flex;flex-direction:column;gap:4px">
+      <div style="font-size:0.6rem;font-weight:800;letter-spacing:.5px;color:var(--text2)">ZONA</div>
+      <select id="zona-select" class="input-text" style="padding:4px 8px;font-size:0.72rem;font-weight:700" onchange="onZonaChange()">
+        <option value="HMO">🏙 Hermosillo</option>
+        <option value="FORANEO">🚌 Foráneo</option>
+      </select>
+    </div>
+  </div>
+
   <!-- Cámara -->
   <div class="cam-wrap">
     <div id="reader"></div>
     <div class="cam-badge" id="cam-badge">📵 Cámara apagada</div>
+    <!-- Overlay últimos 4 dígitos -->
+    <div id="last4-overlay" style="display:none;position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none;z-index:10">
+      <div style="display:inline-block;background:rgba(0,0,0,.72);border-radius:10px;padding:6px 18px">
+        <div style="font-size:0.55rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px">ÚLTIMOS 4</div>
+        <div id="last4-digits" style="font-size:2.2rem;font-weight:900;color:#fff;font-family:var(--mono);letter-spacing:6px;line-height:1.1">—</div>
+      </div>
+    </div>
   </div>
 
   <div class="cam-controls">
@@ -405,6 +440,7 @@ tr:hover td {background:var(--accent-light)}
     </button>
     <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔄</button>
     <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔦</button>
+    <button class="btn btn-secondary" id="btn-cam-search" onclick="startCamSearch()" title="Buscar por cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔎</button>
   </div>
 
   <div class="flash" id="flash"></div>
@@ -463,9 +499,10 @@ tr:hover td {background:var(--accent-light)}
     <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-name">Excel</div><div class="exp-desc">Formato por chofer</div></div>
     <div class="exp-card" onclick="exportCSV()"><div class="exp-icon">📄</div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
     <div class="exp-card" onclick="exportJSON()"><div class="exp-icon">💾</div><div class="exp-name">Backup JSON</div><div class="exp-desc">Respaldo completo</div></div>
-    <div class="exp-card" onclick="copyGuiasOnly()"><div class="exp-icon">📋</div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Solo los números</div></div>
-    <div class="exp-card" onclick="exportTXT()"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Una guía por línea</div></div>
+    <div class="exp-card" onclick="openCopyChoferModal('copy')"><div class="exp-icon">📋</div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Elige el chofer</div></div>
+    <div class="exp-card" onclick="openCopyChoferModal('txt')"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Elige el chofer</div></div>
     <div class="exp-card" onclick="exportHTML()"><div class="exp-icon">🌐</div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
+    <div class="exp-card" style="grid-column:1/-1;background:linear-gradient(135deg,#7c3aed15,#4f46e510);border-color:#7c3aed40" onclick="generateDash()"><div class="exp-icon">📸</div><div class="exp-name">Generar DASH</div><div class="exp-desc">Imagen resumen para compartir</div></div>
   </div>
 
   <div class="card">
@@ -501,8 +538,16 @@ tr:hover td {background:var(--accent-light)}
       <label class="toggle"><input type="checkbox" id="set-vibrate" checked><span class="tsl"></span></label>
     </div>
     <div class="srow">
-      <div><div class="slabel">Pausa entre escaneos (ms)</div><div class="shint">Evita doble registro del mismo código</div></div>
-      <input type="number" class="input-text" id="set-pause" value="1200" style="width:80px;flex:0 0 auto;text-align:center" min="300">
+      <div><div class="slabel">Pausa entre escaneos (ms)</div><div class="shint">800ms recomendado — evita doble registro</div></div>
+      <input type="number" class="input-text" id="set-pause" value="800" style="width:80px;flex:0 0 auto;text-align:center" min="300">
+    </div>
+    <div class="srow">
+      <div><div class="slabel">Resolución cámara</div><div class="shint">Alta = más preciso · Baja = más rápido en gama media</div></div>
+      <select class="input-text" id="set-res" style="width:110px;flex:0 0 auto;font-size:0.75rem;font-weight:700">
+        <option value="640">Baja 480p</option>
+        <option value="1280" selected>Media 720p ✓</option>
+        <option value="1920">Alta 1080p</option>
+      </select>
     </div>
     <div class="srow">
       <div><div class="slabel">Auto-backup cada N guías</div><div class="shint">0 = desactivado. Descarga JSON automático</div></div>
@@ -559,6 +604,42 @@ tr:hover td {background:var(--accent-light)}
       </div>
     </div>
     <button class="btn btn-secondary" style="width:100%;margin-top:4px" onclick="closeModal()">Cancelar</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL COPIAR/TXT POR CHOFER ══════ -->
+<div class="modal-bg" id="copych-modal-bg">
+  <div class="modal" style="border-top-color:#7c3aed">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="copych-title">📋 Copiar Guías</div>
+    <div class="label-sm" style="margin-bottom:8px">¿De qué chofer?</div>
+    <div id="copych-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('copych-modal-bg').classList.remove('show')">✕ CANCELAR</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL DASH PREVIEW ══════ -->
+<div class="modal-bg" id="dash-modal-bg">
+  <div class="modal" style="border-top-color:#7c3aed;max-height:92vh">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📸 DASH — Resumen</div>
+    <canvas id="dash-canvas" style="width:100%;border-radius:var(--r-sm);display:block;margin-bottom:12px"></canvas>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="downloadDash()">⬇ DESCARGAR IMAGEN</button>
+      <button class="btn btn-secondary" onclick="shareDash()" style="flex:1">📤 COMPARTIR</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px" onclick="document.getElementById('dash-modal-bg').classList.remove('show')">✕ CERRAR</button>
+  </div>
+</div>
+
+<!-- ══════ MODAL BUSCAR POR CÁMARA ══════ -->
+<div class="modal-bg" id="camsearch-modal-bg">
+  <div class="modal" style="border-top-color:#7c3aed">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔎 Buscar por Cámara</div>
+    <div id="camsearch-reader" style="border-radius:var(--r-sm);overflow:hidden;margin-bottom:12px"></div>
+    <div id="camsearch-result" style="min-height:60px"></div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:10px" onclick="closeCamSearch()">✕ CERRAR</button>
   </div>
 </div>
 
@@ -765,8 +846,8 @@ document.getElementById('modal-bg').addEventListener('click',e=>{if(e.target===d
 async function selectChofer(name){
   activeChofer=name;closeModal();updateChoferBox();
   await cfgSet('activeChofer',name);
+  saveZonaChofer();
   toast('✓ Chofer: '+name);
-  // Si la cámara estaba parada y hay chofer, iniciar automáticamente
   if(!camOn)document.getElementById('btn-cam').classList.add('ready');
 }
 async function modalAdd(){
@@ -794,23 +875,27 @@ async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
 async function startCam(){
   if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
+  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara cargando, espera un momento');return;}
   try{
     if(html5Qr){try{await html5Qr.stop();}catch(e){}}
-    html5Qr=new Html5Qrcode('reader');
+    html5Qr=new Html5Qrcode('reader',{
+      // BarcodeDetector nativo del navegador — mucho más rápido que ZXing en JS
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true},
+      verbose:false
+    });
     await html5Qr.start(
       {facingMode:facing},
       {
-        fps:15,
-        // Marco amplio para ver más del código
-        qrbox:(w,h)=>({width:Math.floor(w*0.85),height:Math.floor(h*0.5)}),
-        aspectRatio:1.6,
+        fps:25,                          // Subido de 15 → 25 (más intentos por segundo)
+        qrbox:(w,h)=>({width:Math.floor(w*0.88),height:Math.floor(h*0.45)}),
+        aspectRatio:1.7778,              // 16:9 nativo del sensor — menos recorte, más nitidez
         formatsToSupport:[
-          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.CODE_128,   // El más común en iMile
           Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.EAN_13,
           Html5QrcodeSupportedFormats.EAN_8,
           Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.CODE_39,
           Html5QrcodeSupportedFormats.DATA_MATRIX,
           Html5QrcodeSupportedFormats.PDF_417,
           Html5QrcodeSupportedFormats.ITF,
@@ -819,7 +904,12 @@ async function startCam(){
         showTorchButtonIfSupported:false,
         showZoomSliderIfSupported:false,
         defaultZoomValueIfSupported:2,
-        experimentalFeatures:{useBarCodeDetectorIfSupported:true}
+        // Resolución configurable desde ⚙️ Config
+        videoConstraints:(()=>{
+          const w=parseInt(document.getElementById('set-res')?.value||'1280');
+          const h=w===1920?1080:w===1280?720:480;
+          return{facingMode:facing,width:{ideal:w},height:{ideal:h},focusMode:'continuous',advanced:[{zoom:2}]};
+        })()
       },
       code=>handleScan(code),
       _=>{}
@@ -868,6 +958,7 @@ function handleScan(code){
   const pause=parseInt(document.getElementById('set-pause').value)||1200;
   if(code===lastCode&&now-lastTime<pause)return;
   lastCode=code;lastTime=now;
+  updateLast4(code); // Siempre actualiza últimos 4 dígitos
   addRecord(code,'BARCODE/QR');
 }
 
@@ -877,25 +968,30 @@ function handleScan(code){
 async function addRecord(code,type){
   code=code.trim();if(!code)return;
 
+  // MODO iMile — validar formato
+  if(iMileMode&&!isValidImile(code)){
+    // Avisa con sonido diferente pero SÍ guarda — por si iMile agrega nuevo prefijo
+    showFlash('⚠ Prefijo desconocido: '+code.slice(0,6)+'...','dup');
+    if(document.getElementById('set-beep').checked)beepInvalid();
+    if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([40,30,40,30,40]);
+    // Continúa hacia abajo — se guarda igual
+  }
+
+  // Actualizar overlay últimos 4 dígitos
+  updateLast4(code);
+
   // DUPLICADO — verificar si ya existe
   if(document.getElementById('set-dedup').checked&&guidSet.has(code)){
     const existing=records.find(r=>r.guia===code);
     const existingChofer=existing?existing.chofer:'otro chofer';
-
-    // Si ya está en el mismo chofer activo, es duplicado real
     if(existing&&existing.chofer===activeChofer){
-      dupCount++;
-      showFlash('⚠ DUPLICADO: '+code,'dup');
-      updateStats();
+      dupCount++;showFlash('⚠ DUPLICADO: '+code,'dup');updateStats();
       cfgSet('dupCount',dupCount);
       if(document.getElementById('set-beep').checked)beepError();
       if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([80,40,80]);
       return;
     }
-
-    // Está en otro chofer — mostrar modal de reasignación
-    showReasignModal(code, type, existingChofer);
-    return;
+    showReasignModal(code,type,existingChofer);return;
   }
   if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
   await doAddRecord(code,type);
@@ -904,20 +1000,16 @@ async function addRecord(code,type){
 async function doAddRecord(code,type){
   const rec={
     id:Date.now()+'_'+Math.random().toString(36).slice(2,6),
-    guia:code,tipo:type,chofer:activeChofer,
+    guia:code,tipo:type,chofer:activeChofer,zona:activeZona,
     fecha:today(),hora:new Date().toLocaleTimeString('es-MX'),timestamp:Date.now()
   };
   extraCols.forEach(c=>{rec[c]='';});
-  records.unshift(rec);
-  guidSet.add(code);
-
+  records.unshift(rec);guidSet.add(code);
   await persistRec(rec);
-
   if(document.getElementById('set-beep').checked)beepOK();
   if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate(60);
   showFlash('✓ '+code,'ok');
   updateStats();updateChoferBox();renderRecents();
-
   const ab=parseInt(document.getElementById('set-ab').value)||0;
   if(ab>0&&records.length%ab===0)exportBackupJSON(true);
 }
@@ -1016,8 +1108,8 @@ function renderTable(){
   const q=(document.getElementById('search-in').value||'').toLowerCase();
   let rows=records.filter(r=>{
     if(filterCh&&r.chofer!==filterCh)return false;
-    if(!q)return true;
-    return r.guia.toLowerCase().includes(q)||(r.chofer||'').toLowerCase().includes(q)||(r.fecha||'').includes(q);
+    if(q&&!r.guia.toLowerCase().includes(q)&&!(r.chofer||'').toLowerCase().includes(q)&&!(r.fecha||'').includes(q))return false;
+    return true;
   });
   rows.sort((a,b)=>{let va=a[sortCol]??'',vb=b[sortCol]??'';return(va<vb?-1:va>vb?1:0)*(sortAsc?1:-1);});
 
@@ -1028,7 +1120,7 @@ function renderTable(){
         return`<span class="ch-pill${filterCh===c?' active':''}" onclick="setFilter('${escA(c)}')">${esc(c)} (${n})</span>`;})
     ].join(''):'';
 
-  const base=['guia','tipo','chofer','fecha','hora'];
+  const base=['guia','tipo','chofer','zona','fecha','hora'];
   const all=[...base,...extraCols];
   document.getElementById('tbl-head').innerHTML=`<tr>
     ${all.map(c=>`<th onclick="sortBy('${c}')">${c.toUpperCase()}${sortCol===c?(sortAsc?' ↑':' ↓'):''}</th>`).join('')}
@@ -1038,9 +1130,11 @@ function renderTable(){
   if(!rows.length){body.innerHTML=`<tr><td colspan="${all.length+1}"><div class="empty-state">📦<br>Sin guías</div></td></tr>`;return;}
   const show=rows.slice(0,300);
   body.innerHTML=show.map(r=>`<tr>
-    ${base.map(c=>c==='tipo'
-      ?`<td><span style="font-size:0.6rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:700">${r.tipo||'—'}</span></td>`
-      :`<td title="${escA(r[c]||'')}">${esc(r[c])||'—'}</td>`).join('')}
+    ${base.map(c=>{
+      if(c==='tipo')return`<td><span style="font-size:0.6rem;background:var(--accent-light);color:var(--accent);padding:2px 8px;border-radius:10px;font-weight:700">${r.tipo||'—'}</span></td>`;
+      if(c==='zona')return`<td><span style="font-size:0.6rem;background:${r.zona==='FORANEO'?'var(--accent2-light)':'var(--success-light)'};color:${r.zona==='FORANEO'?'var(--accent2)':'var(--success)'};padding:2px 8px;border-radius:10px;font-weight:700">${r.zona||'HMO'}</span></td>`;
+      return`<td title="${escA(r[c]||'')}">${esc(r[c])||'—'}</td>`;
+    }).join('')}
     ${extraCols.map(c=>`<td><input type="text" value="${escA(r[c]||'')}"
       style="background:none;border:none;color:var(--text);font-family:var(--mono);font-size:0.72rem;width:100%;min-width:50px;outline:none"
       onchange="updateField('${r.id}','${c}',this.value)"></td>`).join('')}
@@ -1301,6 +1395,274 @@ function beepError(){
       o.start(c.currentTime+delay);o.stop(c.currentTime+delay+0.14);
     });
   }catch(e){}
+}
+
+// Sonido diferente para guía inválida en modo iMile (tono alto-bajo-alto)
+function beepInvalid(){
+  try{
+    const c=getActx();
+    [[0,880],[0.15,440],[0.30,880]].forEach(([delay,freq])=>{
+      const o=c.createOscillator(),g=c.createGain();
+      o.connect(g);g.connect(c.destination);
+      o.type='sawtooth';o.frequency.value=freq;
+      g.gain.setValueAtTime(0,c.currentTime+delay);
+      g.gain.linearRampToValueAtTime(0.3,c.currentTime+delay+0.01);
+      g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+delay+0.12);
+      o.start(c.currentTime+delay);o.stop(c.currentTime+delay+0.12);
+    });
+  }catch(e){}
+}
+
+/* ══════════════════════════════════════
+   MODO iMILE — Validación de formatos
+══════════════════════════════════════ */
+let iMileMode=false;
+
+const IMILE_PATTERNS=[
+  /^IM08\d{12}$/,
+  /^60[0-9]{11}$/,
+  /^48[0-9]{12}$/,
+  /^368\d{10}$/,
+  /^380\d{10}$/,
+];
+
+function isValidImile(code){
+  return IMILE_PATTERNS.some(p=>p.test(code));
+}
+
+function toggleImileMode(){
+  iMileMode=!iMileMode;
+  const badge=document.getElementById('imile-badge');
+  const dot=document.getElementById('imile-dot');
+  const sub=document.getElementById('imile-sub');
+  const overlay=document.getElementById('last4-overlay');
+  if(iMileMode){
+    badge.style.borderColor='#2563eb';badge.style.background='var(--accent-light)';
+    dot.style.background='#2563eb';sub.textContent='ON — avisa prefijos raros';
+    overlay.style.display='block';
+    toast('Modo iMile ACTIVADO');
+  } else {
+    badge.style.borderColor='var(--border)';badge.style.background='var(--surface)';
+    dot.style.background='var(--border)';sub.textContent='Validación OFF';
+    overlay.style.display='none';
+    document.getElementById('last4-digits').textContent='—';
+    toast('Modo iMile desactivado');
+  }
+}
+
+function updateLast4(code){
+  if(!iMileMode||!code)return;
+  document.getElementById('last4-digits').textContent=code.length>=4?code.slice(-4):'—';
+}
+
+/* ══════════════════════════════════════
+   ZONA (Hermosillo / Foráneo)
+══════════════════════════════════════ */
+let activeZona='HMO';
+
+function onZonaChange(){
+  activeZona=document.getElementById('zona-select').value;
+  const saved=localStorage.getItem('activeChofer_'+activeZona)||'';
+  activeChofer=choferes.includes(saved)?saved:'';
+  updateChoferBox();renderTable();renderRecents();updateStats();
+  toast(activeZona==='HMO'?'Zona: Hermosillo 🏙':'Zona: Foráneo 🚌');
+}
+
+function saveZonaChofer(){
+  localStorage.setItem('activeChofer_'+activeZona,activeChofer);
+}
+
+/* ══════════════════════════════════════
+   BUSCAR POR CÁMARA
+══════════════════════════════════════ */
+let camSearchScanner=null;
+function startCamSearch(){
+  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara aún cargando');return;}
+  document.getElementById('camsearch-modal-bg').classList.add('show');
+  document.getElementById('camsearch-result').innerHTML=
+    '<div style="color:var(--text2);font-size:0.78rem;text-align:center;padding:12px">Apunta al código de barras...</div>';
+  setTimeout(()=>{
+    if(camSearchScanner)try{camSearchScanner.clear();}catch(e){}
+    camSearchScanner=new Html5Qrcode('camsearch-reader');
+    camSearchScanner.start(
+      {facingMode:'environment'},
+      {fps:8,qrbox:{width:240,height:110}},
+      (code)=>{
+        const r=records.find(x=>x.guia===code.trim());
+        const el=document.getElementById('camsearch-result');
+        if(r){
+          el.innerHTML=`<div style="background:var(--success-light);border:2px solid var(--success);border-radius:var(--r-sm);padding:14px">
+            <div style="font-weight:900;font-size:1rem;font-family:var(--mono);color:var(--success);margin-bottom:8px">✅ ENCONTRADA</div>
+            <div style="font-size:0.85rem;font-weight:800;font-family:var(--mono)">${esc(r.guia)}</div>
+            <div style="font-size:0.78rem;margin-top:6px">👤 <strong>${esc(r.chofer||'Sin asignar')}</strong></div>
+            <div style="font-size:0.72rem;color:var(--text2)">${r.fecha||''} ${r.hora||''} · ${r.tipo||''}</div>
+          </div>`;
+        } else {
+          el.innerHTML=`<div style="background:var(--danger-light);border:2px solid var(--danger);border-radius:var(--r-sm);padding:14px">
+            <div style="font-weight:900;color:var(--danger);margin-bottom:6px">❌ NO ENCONTRADA</div>
+            <div style="font-size:0.82rem;font-family:var(--mono)">${esc(code)}</div>
+            <div style="font-size:0.72rem;color:var(--text2);margin-top:4px">No está en los registros actuales</div>
+          </div>`;
+        }
+        try{camSearchScanner.pause();}catch(e){}
+        setTimeout(()=>{try{camSearchScanner.resume();}catch(e){}},2500);
+      },()=>{}
+    ).catch(()=>{});
+  },300);
+}
+function closeCamSearch(){
+  document.getElementById('camsearch-modal-bg').classList.remove('show');
+  if(camSearchScanner){try{camSearchScanner.stop().catch(()=>{});}catch(e){}camSearchScanner=null;}
+}
+document.getElementById('camsearch-modal-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('camsearch-modal-bg'))closeCamSearch();
+});
+
+/* ══════════════════════════════════════
+   COPIAR / TXT POR CHOFER
+══════════════════════════════════════ */
+let copyChMode='copy';
+function openCopyChoferModal(mode){
+  if(!records.length){toast('No hay datos');return;}
+  copyChMode=mode;
+  document.getElementById('copych-title').textContent=mode==='copy'?'📋 Copiar Guías':'📝 Exportar TXT';
+  const chNames=[...new Set(records.map(r=>r.chofer).filter(Boolean))].sort();
+  const list=document.getElementById('copych-list');
+  list.innerHTML=`<div class="ch-opt" data-ch="__ALL__" style="cursor:pointer">
+    <div class="ch-opt-av" style="font-size:0.65rem">ALL</div>
+    <div style="flex:1"><div class="ch-opt-name">Todos los choferes</div></div>
+    <div class="ch-opt-count">${records.length}</div>
+  </div>`+chNames.map((c,i)=>{
+    const n=records.filter(r=>r.chofer===c).length;
+    return `<div class="ch-opt" data-ch="${i}" style="cursor:pointer">
+      <div class="ch-opt-av">${ini(c)}</div>
+      <div style="flex:1"><div class="ch-opt-name">${esc(c)}</div></div>
+      <div class="ch-opt-count">${n}</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.ch-opt').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const ch=el.dataset.ch;
+      const filtered=ch==='__ALL__'?records:records.filter(r=>r.chofer===chNames[parseInt(ch)]);
+      const guias=filtered.map(r=>r.guia).join('\n');
+      document.getElementById('copych-modal-bg').classList.remove('show');
+      if(copyChMode==='copy'){
+        navigator.clipboard.writeText(guias).then(()=>toast(`✓ ${filtered.length} guías copiadas`));
+      } else {
+        const a=document.createElement('a');
+        a.href=URL.createObjectURL(new Blob([guias],{type:'text/plain'}));
+        const label=ch==='__ALL__'?'todos':chNames[parseInt(ch)].replace(/\s+/g,'_');
+        a.download=`guias_${label}_${today().replace(/\//g,'-')}.txt`;
+        a.click();toast('TXT descargado ✓');
+      }
+    });
+  });
+  document.getElementById('copych-modal-bg').classList.add('show');
+}
+
+/* ══════════════════════════════════════
+   DASH — Imagen resumen para compartir
+══════════════════════════════════════ */
+function generateDash(){
+  if(!records.length){toast('No hay datos');return;}
+  const chMap={};
+  records.forEach(r=>{const c=r.chofer||'Sin asignar';chMap[c]=(chMap[c]||0)+1;});
+  const sorted=Object.entries(chMap).sort((a,b)=>b[1]-a[1]);
+  const W=640,H=Math.max(420,230+sorted.length*56+40);
+  const canvas=document.getElementById('dash-canvas');
+  canvas.width=W;canvas.height=H;
+  const ctx=canvas.getContext('2d');
+
+  // Fondo
+  const grad=ctx.createLinearGradient(0,0,W,H);
+  grad.addColorStop(0,'#1e3a8a');grad.addColorStop(1,'#1d4ed8');
+  ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+  // Círculos decorativos
+  ctx.fillStyle='rgba(255,255,255,.05)';
+  for(let i=0;i<5;i++){ctx.beginPath();ctx.arc(W-50+i*25,50+i*25,70,0,Math.PI*2);ctx.fill();}
+
+  // Título
+  ctx.fillStyle='rgba(255,255,255,.13)';roundRect(ctx,24,24,W-48,76,12);ctx.fill();
+  ctx.fillStyle='#fff';ctx.font='bold 26px Arial';ctx.textAlign='left';
+  ctx.fillText('📦 EscanerGuías — Resumen',40,58);
+  ctx.font='13px Arial';ctx.fillStyle='rgba(255,255,255,.7)';
+  ctx.fillText(today()+' · '+nowStr().split(' ')[1],40,78);
+
+  // Pills totales
+  const pill=(x,y,w,h,val,lbl)=>{
+    ctx.fillStyle='rgba(255,255,255,.15)';roundRect(ctx,x,y,w,h,10);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 34px Arial';ctx.textAlign='center';
+    ctx.fillText(val,x+w/2,y+h*0.58);
+    ctx.font='11px Arial';ctx.fillStyle='rgba(255,255,255,.7)';
+    ctx.fillText(lbl,x+w/2,y+h*0.82);
+  };
+  const pw=(W-48-12)/3;
+  pill(24,112,pw,66,records.length,'TOTAL GUÍAS');
+  pill(24+pw+6,112,pw,66,sorted.length,'CHOFERES');
+  const hoy=records.filter(r=>r.fecha===today()).length;
+  pill(24+pw*2+12,112,pw,66,hoy,'HOY');
+
+  // Header tabla
+  ctx.fillStyle='rgba(255,255,255,.2)';roundRect(ctx,24,190,W-48,26,7);ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.85)';ctx.font='bold 11px Arial';ctx.textAlign='left';
+  ctx.fillText('CHOFER',56,207);
+  ctx.textAlign='right';ctx.fillText('GUÍAS',W-32,207);
+
+  // Filas
+  const maxN=sorted[0]?.[1]||1;
+  sorted.forEach(([ch,n],i)=>{
+    const y=224+i*56;
+    ctx.fillStyle=i%2===0?'rgba(255,255,255,.08)':'rgba(255,255,255,.04)';
+    roundRect(ctx,24,y,W-48,48,8);ctx.fill();
+    // Avatar
+    ctx.fillStyle='rgba(99,179,237,.4)';ctx.beginPath();ctx.arc(50,y+24,15,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 12px Arial';ctx.textAlign='center';
+    ctx.fillText(ch[0].toUpperCase(),50,y+29);
+    // Nombre
+    ctx.textAlign='left';ctx.font='bold 13px Arial';ctx.fillStyle='#fff';
+    ctx.fillText(ch.length>26?ch.slice(0,26)+'…':ch,72,y+19);
+    // Barra
+    const barMax=W-200;const barW=Math.max(4,barMax*(n/maxN));
+    ctx.fillStyle='rgba(255,255,255,.12)';roundRect(ctx,72,y+28,barMax,10,5);ctx.fill();
+    ctx.fillStyle='#60a5fa';roundRect(ctx,72,y+28,barW,10,5);ctx.fill();
+    // Número
+    ctx.font='bold 15px Arial';ctx.fillStyle='#fff';ctx.textAlign='right';
+    ctx.fillText(n,W-30,y+20);
+    ctx.font='10px Arial';ctx.fillStyle='rgba(255,255,255,.6)';
+    ctx.fillText('guías',W-30,y+34);ctx.textAlign='left';
+  });
+
+  // Footer
+  ctx.fillStyle='rgba(255,255,255,.4)';ctx.font='11px Arial';ctx.textAlign='left';
+  ctx.fillText('EscanerGuías · '+nowStr(),28,H-10);
+
+  document.getElementById('dash-modal-bg').classList.add('show');
+}
+
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+}
+
+function downloadDash(){
+  const canvas=document.getElementById('dash-canvas');
+  const a=document.createElement('a');
+  a.download=`dash_${today().replace(/\//g,'-')}.png`;
+  a.href=canvas.toDataURL('image/png');a.click();toast('Imagen descargada ✓');
+}
+async function shareDash(){
+  const canvas=document.getElementById('dash-canvas');
+  canvas.toBlob(async(blob)=>{
+    const file=new File([blob],`dash_${today().replace(/\//g,'-')}.png`,{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[file]})){
+      try{await navigator.share({files:[file],title:'Guías escaneadas'});return;}
+      catch(e){if(e.name==='AbortError')return;}
+    }
+    downloadDash();toast('Descargada — comparte desde galería');
+  },'image/png');
 }
 
 /* ══════════════════════════════════════
@@ -1576,16 +1938,7 @@ async function init(){
 window.addEventListener('DOMContentLoaded',init);
 window.addEventListener('beforeunload',()=>{if(dbOK)persistCfg();});
 
-// Registrar Service Worker para funcionamiento offline y PWA completa
-if('serviceWorker' in navigator){
-  window.addEventListener('load',()=>{
-    navigator.serviceWorker.register('./sw.js').then(reg=>{
-      console.log('SW registrado:', reg.scope);
-    }).catch(e=>{
-      console.log('SW error (normal en localhost):', e);
-    });
-  });
-}
+// Service Worker omitido — no aplica en este entorno
 </script>
 </body>
 </html>
