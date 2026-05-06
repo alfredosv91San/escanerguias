@@ -643,6 +643,30 @@ tr:hover td {background:var(--accent-light)}
   </div>
 </div>
 
+<!-- ══════ MODAL IMILE PREFIJO DESCONOCIDO ══════ -->
+<div class="modal-bg" id="imile-confirm-bg">
+  <div class="modal" style="border-top-color:#f59e0b">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:#d97706">⚠️ Prefijo desconocido</div>
+    <div style="background:#fffbeb;border:1.5px solid #fcd34d;border-radius:var(--r-sm);padding:14px;margin-bottom:16px">
+      <div style="font-size:0.72rem;color:#92400e;font-weight:700;margin-bottom:6px">Código escaneado:</div>
+      <div style="font-size:0.9rem;font-weight:900;font-family:var(--mono);color:#0f172a;word-break:break-all;margin-bottom:10px" id="imile-confirm-code">—</div>
+      <div style="font-size:0.75rem;color:#78350f;line-height:1.7">
+        Este código <strong>no coincide</strong> con los formatos iMile conocidos.<br>
+        Puede ser un código cercano leído por error, o un formato nuevo de iMile.
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn btn-primary" onclick="confirmImileAdd()" style="background:linear-gradient(135deg,#d97706,#b45309)">
+        ✅ SÍ, GUARDAR DE TODAS FORMAS
+      </button>
+      <button class="btn btn-secondary" onclick="closeImileConfirm()">
+        🔄 NO — ESCANEAR DE NUEVO
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════ MODAL REASIGNAR GUÍA ══════ -->
 <div class="modal-bg" id="reasign-modal-bg">
   <div class="modal" style="border-top-color:var(--warn)">
@@ -970,11 +994,10 @@ async function addRecord(code,type){
 
   // MODO iMile — validar formato
   if(iMileMode&&!isValidImile(code)){
-    // Avisa con sonido diferente pero SÍ guarda — por si iMile agrega nuevo prefijo
-    showFlash('⚠ Prefijo desconocido: '+code.slice(0,6)+'...','dup');
     if(document.getElementById('set-beep').checked)beepInvalid();
     if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([40,30,40,30,40]);
-    // Continúa hacia abajo — se guarda igual
+    showImileConfirmModal(code,type);
+    return;
   }
 
   // Actualizar overlay últimos 4 dígitos
@@ -1014,7 +1037,30 @@ async function doAddRecord(code,type){
   if(ab>0&&records.length%ab===0)exportBackupJSON(true);
 }
 
-/* Modal de reasignación de guía */
+/* Modal confirmación prefijo desconocido iMile */
+let imileConfirmPending={code:'',type:''};
+function showImileConfirmModal(code,type){
+  imileConfirmPending={code,type};
+  document.getElementById('imile-confirm-code').textContent=code;
+  document.getElementById('imile-confirm-bg').classList.add('show');
+  showFlash('⚠ Prefijo raro: '+code.slice(0,8)+'...','dup');
+}
+function closeImileConfirm(){
+  document.getElementById('imile-confirm-bg').classList.remove('show');
+  imileConfirmPending={code:'',type:''};
+}
+async function confirmImileAdd(){
+  const {code,type}=imileConfirmPending;
+  closeImileConfirm();
+  if(!code)return;
+  if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
+  await doAddRecord(code,type);
+}
+document.getElementById('imile-confirm-bg').addEventListener('click',e=>{
+  if(e.target===document.getElementById('imile-confirm-bg'))closeImileConfirm();
+});
+
+/* Modal reasignación de guía */
 let reasignPending={code:'',type:''};
 function showReasignModal(code,type,fromChofer){
   reasignPending={code,type};
