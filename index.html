@@ -1325,38 +1325,69 @@ async function startCam(){
     if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
     camDecoding=false;
 
-    // Refrescar lista de cámaras con enumerateDevices (no necesita html5-qrcode)
-    const devices=await navigator.mediaDevices.enumerateDevices();
-    availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
-    if(availableCams.length)renderCamSelector();
+    // Enumerar cámaras — en Firefox los labels llegan vacíos antes del permiso, OK
+    try{
+      const devices=await navigator.mediaDevices.enumerateDevices();
+      availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
+      if(availableCams.length)renderCamSelector();
+    }catch(e){}
 
-    // getUserMedia directo — igual que versión clásica que funciona en Cubot
+    // ── Construir constraints ──────────────────────────────────────────────
+    // REGLA: nunca mezclar deviceId + facingMode en el mismo objeto.
+    // REGLA: NO usar facingMode:{exact:...} — Firefox lo rechaza.
+    // REGLA: resolución siempre como hints ideales separados, no exact.
     let videoConstraints;
+
     if(facing==='user'){
+      // Frontal: preferir deviceId si lo tenemos, sino facingMode suave
       const front=availableCams.find(c=>isFrontCam(c));
-      videoConstraints=front&&front.id
-        ?{deviceId:{exact:front.id},width:{ideal:1280},height:{ideal:720}}
-        :{facingMode:'user',width:{ideal:1280},height:{ideal:720}};
-      selectedCamId=front?front.id:'';
+      if(front&&front.id){
+        videoConstraints={deviceId:{exact:front.id}};
+        selectedCamId=front.id;
+      } else {
+        videoConstraints={facingMode:'user'};
+        selectedCamId='';
+      }
+    } else if(selectedCamId){
+      // Trasera ya elegida manualmente en el selector — deviceId exacto
+      videoConstraints={deviceId:{exact:selectedCamId}};
     } else {
-      videoConstraints={facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}};
+      // Trasera automática: intentar por deviceId si tenemos lista, sino facingMode suave
       const back=findMainBackCam(availableCams);
-      selectedCamId=back?back.id:'';
+      if(back&&back.id){
+        videoConstraints={deviceId:{exact:back.id}};
+        selectedCamId=back.id;
+      } else {
+        // facingMode sin exact — compatible Chrome y Firefox
+        videoConstraints={facingMode:'environment'};
+        selectedCamId='';
+      }
     }
+
     const selEl=document.getElementById('cam-select');
     if(selEl&&selectedCamId)selEl.value=selectedCamId;
 
-    camStream=await navigator.mediaDevices.getUserMedia({video:videoConstraints});
+    // Pedir stream — resolución como hint en objeto aparte para no romper constraint de 1 key
+    camStream=await navigator.mediaDevices.getUserMedia({
+      video:{...videoConstraints, width:{ideal:1280}, height:{ideal:720}}
+    });
+
+    // Autofocus continuo — silencioso, no todos los dispositivos lo soportan
+    try{
+      await camStream.getVideoTracks()[0].applyConstraints({advanced:[{focusMode:'continuous'}]});
+    }catch(e){}
 
     const video=document.getElementById('reader');
     video.srcObject=camStream;
     video.style.display='block';
-    await video.play();
 
-    try{
-      const track=camStream.getVideoTracks()[0];
-      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
-    }catch(e){}
+    // Esperar a que el video esté listo antes de hacer play (Firefox lo necesita)
+    await new Promise((resolve,reject)=>{
+      video.onloadedmetadata=()=>resolve();
+      video.onerror=e=>reject(e);
+      setTimeout(resolve,3000); // timeout de seguridad
+    });
+    try{await video.play();}catch(e){}
 
     camOn=true;
     const btn=document.getElementById('btn-cam');
@@ -1364,7 +1395,7 @@ async function startCam(){
     btn.className='btn-cam-main stop';
     const badge=document.getElementById('cam-badge');
     const activeCam=availableCams.find(cam=>cam.id===selectedCamId);
-    const camLabel=activeCam?(activeCam.label||'Cámara'):(facing==='environment'?'Cámara trasera':'Cámara frontal');
+    const camLabel=activeCam&&activeCam.label?activeCam.label:(facing==='environment'?'Cámara trasera':'Cámara frontal');
     badge.textContent='🟢 EN VIVO · '+camLabel;
     badge.className='cam-badge live';
 
@@ -1376,11 +1407,18 @@ async function startCam(){
   }
 }
 
-/* Loop ZXing — igual que versión clásica que funciona */
+/* ── Loop ZXing ───────────────────────────────────────────────────────────
+   Fixes:
+   - readyState<2 en vez de <3: Firefox nunca llega a readyState 3 con streams
+   - videoWidth==0: esperar hasta tener dimensiones reales antes de decodificar
+   - Escala máxima 640px para no saturar CPU en móviles lentos
+   - TRY_HARDER activo para Code 128 con barras finas
+──────────────────────────────────────────────────────────────────────── */
 function startZxingDecode(video){
   camDecoding=true;
   const ZX=window.ZXing;
   if(!ZX){toast('⚠ ZXing no cargado aún, reintenta');return;}
+
   const hints=new Map();
   const F=ZX.BarcodeFormat;
   hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[
@@ -1388,24 +1426,34 @@ function startZxingDecode(video){
     F.UPC_A,F.UPC_E,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC
   ]);
   hints.set(ZX.DecodeHintType.TRY_HARDER,true);
+
   const reader=new ZX.MultiFormatReader();
   reader.setHints(hints);
   const canvas=document.getElementById('reader-canvas');
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+
   const loop=()=>{
     if(!camDecoding)return;
-    if(video.paused||video.readyState<3){requestAnimationFrame(loop);return;}
+    // readyState>=2 (HAVE_CURRENT_DATA) es suficiente — Firefox se queda en 2 con streams
+    if(video.paused||video.readyState<2||video.videoWidth===0){
+      requestAnimationFrame(loop);
+      return;
+    }
+    // Escalar a máx 640px ancho para no saturar CPU
     const scale=Math.min(1,640/video.videoWidth);
-    canvas.width=video.videoWidth*scale||640;
-    canvas.height=video.videoHeight*scale||480;
-    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const cw=Math.floor(video.videoWidth*scale);
+    const ch=Math.floor(video.videoHeight*scale);
+    if(canvas.width!==cw)canvas.width=cw;
+    if(canvas.height!==ch)canvas.height=ch;
+    ctx.drawImage(video,0,0,cw,ch);
     try{
-      const id=ctx.getImageData(0,0,canvas.width,canvas.height);
-      const lum=new ZX.RGBLuminanceSource(id.data,canvas.width,canvas.height);
+      const id=ctx.getImageData(0,0,cw,ch);
+      const lum=new ZX.RGBLuminanceSource(id.data,cw,ch);
       const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
       const res=reader.decode(bmp);
       if(res)handleScan(res.getText());
-    }catch(e){}
+    }catch(e){/* NotFoundException normal — no loguear */}
+    // ~12fps: balance entre detección y batería
     setTimeout(()=>requestAnimationFrame(loop),80);
   };
   requestAnimationFrame(loop);
