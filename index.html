@@ -1812,7 +1812,36 @@ function exportHTML(){
 <style>body{font-family:Arial;padding:20px;font-size:13px}h2{margin-bottom:16px}table{border-collapse:collapse;width:100%}th{background:#2563eb;color:#fff;padding:10px 8px;text-align:left}td{padding:7px 8px;border-bottom:1px solid #e2e8f0}</style></head>
 <body><h2>📦 Guías — ${today()} — ${records.length} registros — ${nowStr()}</h2>
 <table><thead><tr>${hdr.map(h=>`<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
-<tbody>${records.map(r=>`<tr>${hdr.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`,'text/html');
+<tbody>${records.map(r=>`<tr>${hdr.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>
+<!-- ═══ DIAGNÓSTICO CÁMARAS (borrar después de debug) ═══ -->
+<div id="diag-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:12px monospace;padding:10px;z-index:9999;max-height:60vh;overflow-y:auto;white-space:pre-wrap;border-top:2px solid #0f0"></div>
+<button onclick="diagCams()" style="position:fixed;bottom:4px;right:4px;z-index:10000;background:#e11;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:bold">🔍 DIAG</button>
+<script>
+async function diagCams(){
+  const panel=document.getElementById('diag-panel');
+  panel.style.display='block';
+  panel.textContent='Obteniendo cámaras...\n';
+  try{
+    const cams=await Html5Qrcode.getCameras();
+    let txt='=== CÁMARAS ENCONTRADAS: '+cams.length+' ===\n\n';
+    cams.forEach((cam,i)=>{
+      txt+='['+i+'] ID: '+cam.id+'\n';
+      txt+='    LABEL: "'+cam.label+'"\n';
+      txt+='    isFront: '+isFrontCam(cam)+'\n\n';
+    });
+    txt+='=== selectedCamId: "'+selectedCamId+'" ===\n';
+    txt+='=== facing: "'+facing+'" ===\n';
+    panel.textContent=txt;
+    // También mostrar como alert para copiar fácil
+    alert(txt);
+  }catch(e){
+    panel.textContent='ERROR: '+e.message;
+    alert('ERROR: '+e.message);
+  }
+}
+</script>
+
+</body></html>`,'text/html');
   toast('HTML ✓');
   confirmExpCard(document.querySelector('[onclick="exportHTML()"]'));
 }
@@ -2254,6 +2283,35 @@ tbody td{padding:6px 8px;border-bottom:1px solid #e2e8f0}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}button{display:none}}
 </style></head><body>${manifiestos}
 <script>window.onload=()=>{window.print();}<\/script>
+
+<!-- ═══ DIAGNÓSTICO CÁMARAS (borrar después de debug) ═══ -->
+<div id="diag-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:12px monospace;padding:10px;z-index:9999;max-height:60vh;overflow-y:auto;white-space:pre-wrap;border-top:2px solid #0f0"></div>
+<button onclick="diagCams()" style="position:fixed;bottom:4px;right:4px;z-index:10000;background:#e11;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:bold">🔍 DIAG</button>
+<script>
+async function diagCams(){
+  const panel=document.getElementById('diag-panel');
+  panel.style.display='block';
+  panel.textContent='Obteniendo cámaras...\n';
+  try{
+    const cams=await Html5Qrcode.getCameras();
+    let txt='=== CÁMARAS ENCONTRADAS: '+cams.length+' ===\n\n';
+    cams.forEach((cam,i)=>{
+      txt+='['+i+'] ID: '+cam.id+'\n';
+      txt+='    LABEL: "'+cam.label+'"\n';
+      txt+='    isFront: '+isFrontCam(cam)+'\n\n';
+    });
+    txt+='=== selectedCamId: "'+selectedCamId+'" ===\n';
+    txt+='=== facing: "'+facing+'" ===\n';
+    panel.textContent=txt;
+    // También mostrar como alert para copiar fácil
+    alert(txt);
+  }catch(e){
+    panel.textContent='ERROR: '+e.message;
+    alert('ERROR: '+e.message);
+  }
+}
+</script>
+
 </body></html>`);
   win.document.close();
   toast('✓ Abriendo manifiesto para imprimir');
@@ -2434,5 +2492,34 @@ async function init(){
 window.addEventListener('DOMContentLoaded',init);
 window.addEventListener('beforeunload',()=>{if(dbOK)persistCfg();});
 </script>
+
+<!-- ═══ DIAGNÓSTICO CÁMARAS (borrar después de debug) ═══ -->
+<div id="diag-panel" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:12px monospace;padding:10px;z-index:9999;max-height:60vh;overflow-y:auto;white-space:pre-wrap;border-top:2px solid #0f0"></div>
+<button onclick="diagCams()" style="position:fixed;bottom:4px;right:4px;z-index:10000;background:#e11;color:#fff;border:none;border-radius:6px;padding:6px 12px;font-size:13px;font-weight:bold">🔍 DIAG</button>
+<script>
+async function diagCams(){
+  const panel=document.getElementById('diag-panel');
+  panel.style.display='block';
+  panel.textContent='Obteniendo cámaras...\n';
+  try{
+    const cams=await Html5Qrcode.getCameras();
+    let txt='=== CÁMARAS ENCONTRADAS: '+cams.length+' ===\n\n';
+    cams.forEach((cam,i)=>{
+      txt+='['+i+'] ID: '+cam.id+'\n';
+      txt+='    LABEL: "'+cam.label+'"\n';
+      txt+='    isFront: '+isFrontCam(cam)+'\n\n';
+    });
+    txt+='=== selectedCamId: "'+selectedCamId+'" ===\n';
+    txt+='=== facing: "'+facing+'" ===\n';
+    panel.textContent=txt;
+    // También mostrar como alert para copiar fácil
+    alert(txt);
+  }catch(e){
+    panel.textContent='ERROR: '+e.message;
+    alert('ERROR: '+e.message);
+  }
+}
+</script>
+
 </body>
 </html>
