@@ -1344,10 +1344,10 @@ async function startCam(){
       if(sel)sel.value=pick.id;
     }
 
-    // Pasar deviceId como string directo — más confiable que {deviceId:{exact:}} en Android.
-    // Fallback a facingMode solo si no hay ninguna cámara listada.
+    // html5-qrcode v2 requiere {deviceId:{exact:id}} para forzar una cámara concreta.
+    // Pasar el string directo causa error getUserMedia en Android/Chrome.
     const camArg = selectedCamId
-      ? selectedCamId
+      ? {deviceId:{exact:selectedCamId}}
       : {facingMode: facing==='user'?'user':'environment'};
 
     // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
