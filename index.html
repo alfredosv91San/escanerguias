@@ -1255,34 +1255,39 @@ async function detectCameras(){
   try{
     if(typeof Html5Qrcode==='undefined')return;
     availableCams=await Html5Qrcode.getCameras();
+    // Resetear siempre al arrancar: elegir trasera principal como default
+    selectedCamId='';
+    facing='environment';
     renderCamSelector();
   }catch(e){
     // Permission denied al inicio es esperado — se reintenta al presionar INICIAR
   }
 }
 
-/* Clasifica una cámara como frontal basándose en su label.
-   Cubot King Kong reporta: "facing front 1", "facing back 0", "facing back 2" */
+/* Clasifica una cámara como frontal.
+   Soporta formatos: "camera 1, facing front" / "facing front 1" / "front" */
 function isFrontCam(cam){
   const lbl=(cam.label||'').toLowerCase();
-  if(/facing\s+front|front\s+\d|frontal|selfie/i.test(lbl))return true;
-  if(/facing\s+back|back\s+\d/i.test(lbl))return false;
+  if(/facing\s+back|,\s*facing\s+back/i.test(lbl))return false;
+  if(/facing\s+front|,\s*facing\s+front|frontal|selfie/i.test(lbl))return true;
   return /\bfront\b|\buser\b/i.test(lbl);
 }
 
-/* Elige la trasera principal entre varias:
-   - Prefiere "back 0" (cámara principal en Cubot y similares)
-   - Evita ultra-wide, macro, depth, tele
-   - Si los labels son opacos, toma la primera trasera */
+/* Elige la trasera principal entre varias.
+   Soporta: "camera 0, facing back" (índice bajo = principal) */
 function findMainBackCam(cams){
   if(!cams||!cams.length)return null;
   const backs=cams.filter(c=>!isFrontCam(c));
   const pool=backs.length?backs:cams;
-  const back0=pool.find(c=>/back\s*0|back\s*camera\s*0/i.test(c.label||''));
-  if(back0)return back0;
-  const main=pool.find(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
-  if(main)return main;
-  return pool[0];
+  // Preferir "camera 0" — el número más bajo indica cámara principal
+  const sorted=pool.slice().sort((a,b)=>{
+    const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
+    const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
+    return na-nb;
+  });
+  // Evitar lentes secundarias
+  const main=sorted.find(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
+  return main||sorted[0];
 }
 
 function renderCamSelector(){
