@@ -9,14 +9,7 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>EscanerGuías</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-<script>
-if(typeof Html5Qrcode==='undefined'){
-  const s=document.createElement('script');
-  s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
-  document.head.appendChild(s);
-}
-</script>
+<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -720,7 +713,8 @@ tr:hover td{background:var(--accent-light)}
 
   <!-- Cámara -->
   <div class="cam-wrap">
-    <div id="reader"></div>
+    <video id="reader" playsinline autoplay muted style="width:100%;height:100%;object-fit:cover;display:none;border-radius:inherit"></video>
+    <canvas id="reader-canvas" style="display:none"></canvas>
     <div class="cam-badge" id="cam-badge">📵 Cámara apagada</div>
     <div id="last4-overlay" style="display:none;position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none;z-index:10">
       <div style="display:inline-block;background:rgba(0,0,0,.72);border-radius:10px;padding:6px 18px">
@@ -1110,12 +1104,12 @@ const cfgSet=(k,v)=>idbPut('config',{key:k,value:v});
 ══════════════════════════════════════ */
 let records=[],choferes=[],extraCols=[],dupCount=0;
 let guidSet=new Set(),activeChofer='';
-let camOn=false,facing='environment',html5Qr=null;
+let camOn=false,facing='environment',camStream=null,camDecoding=false;
 let sortCol='timestamp',sortAsc=false,filterCh=null,torchOn=false;
 let lastCode='',lastTime=0;
 // Lista de cámaras detectadas
 let availableCams=[];
-let selectedCamId=''; // deviceId seleccionado manualmente ('' = automático)
+let selectedCamId='';
 
 const today=()=>new Date().toLocaleDateString('es-MX');
 const nowStr=()=>new Date().toLocaleString('es-MX');
@@ -1327,74 +1321,42 @@ async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
 async function startCam(){
   if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
-  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara cargando, espera un momento');return;}
-
   try{
-    if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
+    if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+    camDecoding=false;
 
-    const compatMode=loadCompatMode();
-
-    // Refrescar lista de cámaras siempre (permiso ya dado al llegar aquí)
-    try{availableCams=await Html5Qrcode.getCameras();}catch(e){}
+    // Refrescar lista de cámaras con enumerateDevices (no necesita html5-qrcode)
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
     if(availableCams.length)renderCamSelector();
 
-    // Elegir cámara por deviceId explícito — es el único método confiable
-    // en dispositivos donde facingMode:'environment' abre la frontal (bug Android)
-    let camArg;
+    // getUserMedia directo — igual que versión clásica que funciona en Cubot
+    let videoConstraints;
     if(facing==='user'){
       const front=availableCams.find(c=>isFrontCam(c));
+      videoConstraints=front&&front.id
+        ?{deviceId:{exact:front.id},width:{ideal:1280},height:{ideal:720}}
+        :{facingMode:'user',width:{ideal:1280},height:{ideal:720}};
       selectedCamId=front?front.id:'';
-      camArg=front?{deviceId:{exact:front.id}}:{facingMode:'user'};
     } else {
-      // Trasera: elegir por deviceId exacto de la trasera principal
+      videoConstraints={facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}};
       const back=findMainBackCam(availableCams);
       selectedCamId=back?back.id:'';
-      // Si tenemos deviceId lo usamos — si no, facingMode como último recurso
-      camArg=back?{deviceId:{exact:back.id}}:{facingMode:'environment'};
     }
     const selEl=document.getElementById('cam-select');
     if(selEl&&selectedCamId)selEl.value=selectedCamId;
-    console.log('[CAM] facing='+facing+' selectedCamId='+selectedCamId+' camArg='+JSON.stringify(camArg));
 
-    // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
-    html5Qr=new Html5Qrcode('reader',{
-      experimentalFeatures:{useBarCodeDetectorIfSupported:false},
-      verbose:false
-    });
+    camStream=await navigator.mediaDevices.getUserMedia({video:videoConstraints});
 
-    // Resolución preferida — va como videoConstraints dentro de scanConfig
-    const w=parseInt(document.getElementById('set-res')?.value||'1280');
-    const h=w===1920?1080:w===1280?720:480;
+    const video=document.getElementById('reader');
+    video.srcObject=camStream;
+    video.style.display='block';
+    await video.play();
 
-    // Formatos con fallback seguro
-    let fmts=null;
     try{
-      if(typeof Html5QrcodeSupportedFormats!=='undefined'){
-        fmts=[
-          Html5QrcodeSupportedFormats.CODE_128,
-          Html5QrcodeSupportedFormats.QR_CODE,
-          Html5QrcodeSupportedFormats.EAN_13,
-          Html5QrcodeSupportedFormats.EAN_8,
-          Html5QrcodeSupportedFormats.UPC_A,
-          Html5QrcodeSupportedFormats.CODE_39,
-          Html5QrcodeSupportedFormats.DATA_MATRIX,
-          Html5QrcodeSupportedFormats.PDF_417,
-          Html5QrcodeSupportedFormats.ITF,
-          Html5QrcodeSupportedFormats.AZTEC
-        ].filter(f=>f!==undefined);
-      }
-    }catch(e){fmts=null;}
-
-    const scanConfig={
-      fps:compatMode?20:30,
-      qrbox:(vw,vh)=>({width:Math.floor(vw*0.92),height:Math.floor(vh*0.38)}),
-      videoConstraints:{width:{ideal:w},height:{ideal:h}},
-      showTorchButtonIfSupported:false,
-      showZoomSliderIfSupported:false
-    };
-    if(fmts&&fmts.length)scanConfig.formatsToSupport=fmts;
-
-    await html5Qr.start(camArg,scanConfig,code=>handleScan(code),_=>{});
+      const track=camStream.getVideoTracks()[0];
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+    }catch(e){}
 
     camOn=true;
     const btn=document.getElementById('btn-cam');
@@ -1406,18 +1368,54 @@ async function startCam(){
     badge.textContent='🟢 EN VIVO · '+camLabel;
     badge.className='cam-badge live';
 
-    // Autofocus continuo — intento silencioso, no crítico
-    try{await html5Qr.applyVideoConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
-
+    startZxingDecode(video);
   }catch(e){
     const msg=e&&e.message?e.message:String(e);
     toast('Error cámara: '+msg);
-    console.error('startCam error:',e);
+    console.error('startCam:',e);
   }
 }
 
+/* Loop ZXing — igual que versión clásica que funciona */
+function startZxingDecode(video){
+  camDecoding=true;
+  const ZX=window.ZXing;
+  if(!ZX){toast('⚠ ZXing no cargado aún, reintenta');return;}
+  const hints=new Map();
+  const F=ZX.BarcodeFormat;
+  hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[
+    F.CODE_128,F.QR_CODE,F.CODE_39,F.EAN_13,F.EAN_8,
+    F.UPC_A,F.UPC_E,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC
+  ]);
+  hints.set(ZX.DecodeHintType.TRY_HARDER,true);
+  const reader=new ZX.MultiFormatReader();
+  reader.setHints(hints);
+  const canvas=document.getElementById('reader-canvas');
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const loop=()=>{
+    if(!camDecoding)return;
+    if(video.paused||video.readyState<3){requestAnimationFrame(loop);return;}
+    const scale=Math.min(1,640/video.videoWidth);
+    canvas.width=video.videoWidth*scale||640;
+    canvas.height=video.videoHeight*scale||480;
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    try{
+      const id=ctx.getImageData(0,0,canvas.width,canvas.height);
+      const lum=new ZX.RGBLuminanceSource(id.data,canvas.width,canvas.height);
+      const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
+      const res=reader.decode(bmp);
+      if(res)handleScan(res.getText());
+    }catch(e){}
+    setTimeout(()=>requestAnimationFrame(loop),80);
+  };
+  requestAnimationFrame(loop);
+}
+
 async function stopCam(){
-  if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
+  camDecoding=false;
+  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  const video=document.getElementById('reader');
+  if(video){video.srcObject=null;video.style.display='none';}
   camOn=false;
   const btn=document.getElementById('btn-cam');
   btn.innerHTML='<span class="btn-main-ico">▶</span> INICIAR CÁMARA';
@@ -1428,35 +1426,17 @@ async function stopCam(){
 }
 
 async function switchCam(){
-  // Asegurar lista de cámaras antes de buscar por deviceId
-  if(!availableCams.length){
-    try{availableCams=await Html5Qrcode.getCameras();}catch(e){}
-  }
-
-  // Alternar facing y buscar deviceId correspondiente
-  if(facing==='environment'){
-    facing='user';
-    const front=availableCams.find(c=>isFrontCam(c));
-    if(!front){toast('No se encontró cámara frontal');facing='environment';return;}
-    selectedCamId=front.id;
-  } else {
-    facing='environment';
-    const main=findMainBackCam(availableCams);
-    if(!main){toast('No se encontró cámara trasera');facing='user';return;}
-    selectedCamId=main.id;
-  }
-
-  const sel=document.getElementById('cam-select');
-  if(sel)sel.value=selectedCamId;
+  facing=facing==='environment'?'user':'environment';
   if(camOn){await stopCam();await startCam();}
   else toast('Inicia la cámara primero');
 }
 
 async function toggleTorch(){
-  if(!html5Qr||!camOn){toast('Inicia la cámara primero');return;}
+  if(!camStream||!camOn){toast('Inicia la cámara primero');return;}
   try{
     torchOn=!torchOn;
-    await html5Qr.applyVideoConstraints({advanced:[{torch:torchOn}]});
+    const track=camStream.getVideoTracks()[0];
+    await track.applyConstraints({advanced:[{torch:torchOn}]});
     document.getElementById('btn-torch').textContent=torchOn?'💡':'🔦';
     toast(torchOn?'🔦 Linterna ON':'🔦 Linterna OFF');
   }catch(e){toast('Linterna no disponible');torchOn=false;}
@@ -1969,48 +1949,81 @@ function saveZonaChofer(){localStorage.setItem('activeChofer_'+activeZona,active
 /* ══════════════════════════════════════
    BUSCAR POR CÁMARA
 ══════════════════════════════════════ */
-let camSearchScanner=null;
+let camSearchStream=null,camSearchDecoding=false;
 function startCamSearch(){
-  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara aún cargando');return;}
   document.getElementById('camsearch-modal-bg').classList.add('show');
   document.getElementById('camsearch-result').innerHTML=
     '<div style="color:var(--text2);font-size:0.78rem;text-align:center;padding:12px">Apunta al código de barras...</div>';
-  setTimeout(()=>{
-    if(camSearchScanner)try{camSearchScanner.clear();}catch(e){}
-    camSearchScanner=new Html5Qrcode('camsearch-reader');
-    // Usar la misma cámara seleccionada
-    const constraints=selectedCamId
-      ?{deviceId:{exact:selectedCamId}}
-      :{facingMode:'environment'};
-    camSearchScanner.start(
-      constraints,
-      {fps:25,qrbox:{width:260,height:100},experimentalFeatures:{useBarCodeDetectorIfSupported:false}},
-      (code)=>{
-        const r=records.find(x=>x.guia===code.trim());
-        const el=document.getElementById('camsearch-result');
-        if(r){
-          el.innerHTML=`<div style="background:var(--success-light);border:2px solid var(--success);border-radius:var(--r-sm);padding:14px">
-            <div style="font-weight:900;font-size:1rem;font-family:var(--mono);color:var(--success);margin-bottom:8px">✅ ENCONTRADA</div>
-            <div style="font-size:0.85rem;font-weight:800;font-family:var(--mono)">${esc(r.guia)}</div>
-            <div style="font-size:0.78rem;margin-top:6px">👤 <strong>${esc(r.chofer||'Sin asignar')}</strong></div>
-            <div style="font-size:0.72rem;color:var(--text2)">${r.fecha||''} ${r.hora||''} · ${r.tipo||''}</div>
-          </div>`;
-        } else {
-          el.innerHTML=`<div style="background:var(--danger-light);border:2px solid var(--danger);border-radius:var(--r-sm);padding:14px">
-            <div style="font-weight:900;color:var(--danger);margin-bottom:6px">❌ NO ENCONTRADA</div>
-            <div style="font-size:0.82rem;font-family:var(--mono)">${esc(code)}</div>
-            <div style="font-size:0.72rem;color:var(--text2);margin-top:4px">No está en los registros actuales</div>
-          </div>`;
-        }
-        try{camSearchScanner.pause();}catch(e){}
-        setTimeout(()=>{try{camSearchScanner.resume();}catch(e){}},2500);
-      },()=>{}
-    ).catch(()=>{});
+  setTimeout(async()=>{
+    try{
+      if(camSearchStream){camSearchStream.getTracks().forEach(t=>t.stop());camSearchStream=null;}
+      camSearchDecoding=false;
+      camSearchStream=await navigator.mediaDevices.getUserMedia({
+        video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}
+      });
+      const video=document.getElementById('camsearch-reader');
+      video.srcObject=camSearchStream;
+      video.style.display='block';
+      await video.play();
+      camSearchDecoding=true;
+      const ZX=window.ZXing;
+      if(!ZX){toast('⚠ ZXing no cargado');return;}
+      const hints=new Map();
+      const F=ZX.BarcodeFormat;
+      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[F.CODE_128,F.QR_CODE,F.CODE_39,F.EAN_13,F.EAN_8,F.UPC_A,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC]);
+      hints.set(ZX.DecodeHintType.TRY_HARDER,true);
+      const zreader=new ZX.MultiFormatReader();
+      zreader.setHints(hints);
+      const canvas=document.createElement('canvas');
+      const ctx=canvas.getContext('2d',{willReadFrequently:true});
+      let lastCode='',lastTime=0;
+      const loop=()=>{
+        if(!camSearchDecoding)return;
+        if(video.paused||video.readyState<3){requestAnimationFrame(loop);return;}
+        const scale=Math.min(1,640/video.videoWidth);
+        canvas.width=video.videoWidth*scale||640;
+        canvas.height=video.videoHeight*scale||480;
+        ctx.drawImage(video,0,0,canvas.width,canvas.height);
+        try{
+          const id=ctx.getImageData(0,0,canvas.width,canvas.height);
+          const lum=new ZX.RGBLuminanceSource(id.data,canvas.width,canvas.height);
+          const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
+          const res=zreader.decode(bmp);
+          if(res){
+            const code=res.getText();
+            if(code!==lastCode||Date.now()-lastTime>2500){
+              lastCode=code;lastTime=Date.now();
+              const r=records.find(x=>x.guia===code.trim());
+              const el=document.getElementById('camsearch-result');
+              if(r){
+                el.innerHTML=`<div style="background:var(--success-light);border:2px solid var(--success);border-radius:var(--r-sm);padding:14px">
+                  <div style="font-weight:900;font-size:1rem;font-family:var(--mono);color:var(--success);margin-bottom:8px">✅ ENCONTRADA</div>
+                  <div style="font-size:0.85rem;font-weight:800;font-family:var(--mono)">${esc(r.guia)}</div>
+                  <div style="font-size:0.78rem;margin-top:6px">👤 <strong>${esc(r.chofer||'Sin asignar')}</strong></div>
+                  <div style="font-size:0.72rem;color:var(--text2)">${r.fecha||''} ${r.hora||''} · ${r.tipo||''}</div>
+                </div>`;
+              } else {
+                el.innerHTML=`<div style="background:var(--danger-light);border:2px solid var(--danger);border-radius:var(--r-sm);padding:14px">
+                  <div style="font-weight:900;color:var(--danger);margin-bottom:6px">❌ NO ENCONTRADA</div>
+                  <div style="font-size:0.82rem;font-family:var(--mono)">${esc(code)}</div>
+                  <div style="font-size:0.72rem;color:var(--text2);margin-top:4px">No está en los registros actuales</div>
+                </div>`;
+              }
+            }
+          }
+        }catch(e){}
+        setTimeout(()=>requestAnimationFrame(loop),100);
+      };
+      requestAnimationFrame(loop);
+    }catch(e){toast('Error cámara búsqueda: '+e.message);}
   },300);
 }
 function closeCamSearch(){
   document.getElementById('camsearch-modal-bg').classList.remove('show');
-  if(camSearchScanner){try{camSearchScanner.stop().catch(()=>{});}catch(e){}camSearchScanner=null;}
+  camSearchDecoding=false;
+  if(camSearchStream){camSearchStream.getTracks().forEach(t=>t.stop());camSearchStream=null;}
+  const video=document.getElementById('camsearch-reader');
+  if(video){video.srcObject=null;video.style.display='none';}
 }
 document.getElementById('camsearch-modal-bg').addEventListener('click',e=>{
   if(e.target===document.getElementById('camsearch-modal-bg'))closeCamSearch();
