@@ -1334,26 +1334,30 @@ async function startCam(){
 
     const compatMode=loadCompatMode();
 
-    // SIEMPRE refrescar lista de cámaras — el permiso ya fue dado al llegar aquí.
-    // Sin deviceId concreto, Chrome en Android ignora facingMode y abre frontal.
+    // Refrescar lista de cámaras siempre (permiso ya dado al llegar aquí)
     try{availableCams=await Html5Qrcode.getCameras();}catch(e){}
     if(availableCams.length)renderCamSelector();
 
-    // Si no tenemos deviceId, elegir según facing actual
-    if(!selectedCamId && availableCams.length){
-      const pick = facing==='user'
-        ? (availableCams.find(c=>isFrontCam(c)) || availableCams[0])
-        : (findMainBackCam(availableCams) || availableCams[0]);
-      selectedCamId=pick.id;
-      const sel=document.getElementById('cam-select');
-      if(sel)sel.value=pick.id;
+    // Construir camArg: facingMode es el mecanismo principal en Android Chrome.
+    // deviceId exact solo se usa cuando el usuario elige manualmente del selector.
+    let camArg;
+    if(facing==='user'){
+      // Frontal: buscar por deviceId si tenemos label claro, sino facingMode
+      const front=availableCams.find(c=>isFrontCam(c));
+      camArg=front
+        ?{deviceId:{exact:front.id}}
+        :{facingMode:'user'};
+      selectedCamId=front?front.id:'';
+    } else {
+      // Trasera: facingMode:'environment' primero — Android Chrome lo respeta
+      // y elige la cámara trasera principal automáticamente
+      camArg={facingMode:'environment'};
+      // Registrar el deviceId de la trasera principal para el selector
+      const back=findMainBackCam(availableCams);
+      selectedCamId=back?back.id:'';
     }
-
-    // html5-qrcode v2 requiere {deviceId:{exact:id}} para forzar una cámara concreta.
-    // Pasar el string directo causa error getUserMedia en Android/Chrome.
-    const camArg = selectedCamId
-      ? {deviceId:{exact:selectedCamId}}
-      : {facingMode: facing==='user'?'user':'environment'};
+    const sel=document.getElementById('cam-select');
+    if(sel&&selectedCamId)sel.value=selectedCamId;
 
     // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
     html5Qr=new Html5Qrcode('reader',{
