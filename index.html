@@ -1313,14 +1313,50 @@ function findMainBackCam(cams){
   if(!cams||!cams.length)return null;
   const backs=cams.filter(c=>!isFrontCam(c));
   const pool=backs.length?backs:cams;
+  // Ordenar por número en label — número bajo = principal (camera 0 > camera 2)
   const sorted=pool.slice().sort((a,b)=>{
     const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
     const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
     return na-nb;
   });
-  const main=sorted.find(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
-  dbg.log(`findMainBackCam → ${(main||sorted[0])?.label||'(sin label)'}`);
-  return main||sorted[0];
+  // Evitar lentes secundarias solo si hay más de una opción
+  const filtered=sorted.filter(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
+  const result=(filtered.length?filtered:sorted)[0];
+  dbg.log(`findMainBackCam pool: ${sorted.map(c=>c.label||c.id.slice(0,6)).join(' | ')} → ${result?.label||'?'}`);
+  return result||null;
+}
+
+/* Intentar abrir cámaras traseras una por una hasta que una funcione.
+   En Android algunos deviceIds aparecen en enumerateDevices pero no abren (cámaras virtuales).
+   Llamado solo desde startCam cuando el deviceId preferido falla. */
+async function tryOpenBackCam(excludeIds=[]){
+  const backs=availableCams.filter(c=>!isFrontCam(c)&&!excludeIds.includes(c.id));
+  dbg.log(`tryOpenBackCam: intentando ${backs.length} cámaras — excluidas: ${excludeIds.length}`);
+  for(const cam of backs){
+    try{
+      dbg.log(`  probando "${cam.label}" id=${cam.id.slice(0,12)}`);
+      const s=await navigator.mediaDevices.getUserMedia({
+        video:{deviceId:{exact:cam.id},width:{ideal:1280},height:{ideal:720}},
+        audio:false
+      });
+      dbg.log(`  ABRIÓ "${cam.label}" ✓`);
+      return {stream:s, cam};
+    }catch(e){
+      dbg.warn(`  falló "${cam.label}": ${e.message}`);
+    }
+  }
+  // Último recurso: facingMode sin deviceId
+  dbg.warn('tryOpenBackCam: todos fallaron, usando facingMode:environment');
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({
+      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},
+      audio:false
+    });
+    return {stream:s, cam:null};
+  }catch(e){
+    dbg.err('tryOpenBackCam facingMode fallback falló: '+e.message);
+    throw e;
+  }
 }
 
 function renderCamSelector(){
@@ -1378,35 +1414,60 @@ async function startCam(){
     // Nunca mezclar deviceId + width/height en un mismo nivel — va en video:{}.
     // Nunca usar facingMode:{exact} — Firefox lo rechaza.
 
-    let camId = null;
-
     if(facing==='user'){
+      // ── FRONTAL ──────────────────────────────────────────────────────────
       const front=availableCams.find(c=>isFrontCam(c));
-      camId=front?.id||null;
-      dbg.log(`facing=user → front cam: ${front?.label||'fallback facingMode'}`);
+      const fid=front?.id||null;
+      dbg.log(`facing=user → ${front?.label||'facingMode fallback'}`);
+      const videoObj=fid
+        ?{deviceId:{exact:fid},width:{ideal:1280},height:{ideal:720}}
+        :{facingMode:'user',width:{ideal:1280},height:{ideal:720}};
+      dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
+      camStream=await navigator.mediaDevices.getUserMedia({video:videoObj,audio:false});
+      if(fid){selectedCamId=fid;const sel=document.getElementById('cam-select');if(sel)sel.value=fid;}
+
     } else {
-      // environment: si selectedCamId es una cámara trasera confirmada, úsalo
-      const cam=availableCams.find(c=>c.id===selectedCamId);
-      if(cam&&!isFrontCam(cam)){
-        camId=selectedCamId;
-        dbg.log(`facing=env → selectedCamId "${cam.label}"`);
-      } else {
-        const back=findMainBackCam(availableCams);
-        camId=back?.id||null;
-        if(camId){selectedCamId=camId;const sel=document.getElementById('cam-select');if(sel)sel.value=camId;}
-        dbg.log(`facing=env → autoback "${back?.label||'facingMode fallback'}"`);
+      // ── TRASERA — intentar en orden, saltar las que no abran ─────────────
+      // Primero intentar el selectedCamId actual si es trasera
+      const currentCam=availableCams.find(c=>c.id===selectedCamId);
+      const preferredId=(currentCam&&!isFrontCam(currentCam))?selectedCamId:null;
+
+      // Ordenar traseras: preferida primero, luego las demás por número
+      const backs=availableCams.filter(c=>!isFrontCam(c));
+      const ordered=backs.slice().sort((a,b)=>{
+        if(a.id===preferredId)return -1;
+        if(b.id===preferredId)return 1;
+        const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
+        const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
+        return na-nb;
+      });
+      dbg.log(`traseras ordenadas: ${ordered.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
+
+      let opened=false;
+      for(const cam of ordered){
+        try{
+          const videoObj={deviceId:{exact:cam.id},width:{ideal:1280},height:{ideal:720}};
+          dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
+          camStream=await navigator.mediaDevices.getUserMedia({video:videoObj,audio:false});
+          selectedCamId=cam.id;
+          const sel=document.getElementById('cam-select');if(sel)sel.value=cam.id;
+          dbg.log(`trasera abierta: "${cam.label}"`);
+          opened=true;
+          break;
+        }catch(e){
+          dbg.warn(`falló "${cam.label}": ${e.message} — probando siguiente`);
+          await new Promise(r=>setTimeout(r,300));
+        }
+      }
+      if(!opened){
+        // Último recurso absoluto
+        dbg.warn('todos los deviceIds fallaron — usando facingMode:environment');
+        camStream=await navigator.mediaDevices.getUserMedia({
+          video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false
+        });
+        selectedCamId='';
       }
     }
-
-    // Construir constraint — deviceId como string directo (más compatible que {exact:id})
-    // La resolución va dentro del mismo objeto video:{} pero como hints ideal, no exact
-    const videoObj = camId
-      ? {deviceId:{exact:camId}, width:{ideal:1280}, height:{ideal:720}}
-      : {facingMode: facing==='user'?'user':'environment', width:{ideal:1280}, height:{ideal:720}};
-
-    dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
-
-    camStream=await navigator.mediaDevices.getUserMedia({video:videoObj, audio:false});
 
     const track=camStream.getVideoTracks()[0];
     const settings=track.getSettings();
@@ -1442,18 +1503,8 @@ async function startCam(){
 
   }catch(e){
     const msg=e?.message||String(e);
-    dbg.err('startCam FAIL: '+msg);
+    dbg.err('startCam FAIL definitivo: '+msg);
     toast('Error cámara: '+msg);
-
-    // Si falla con deviceId, reintentar con facingMode puro (Firefox fallback)
-    if(!startCam._fallback&&(msg.includes('Could not start')||msg.includes('NotReadable')||msg.includes('Abort'))){
-      dbg.warn('Reintentando con facingMode puro...');
-      startCam._fallback=true;
-      selectedCamId='';
-      await new Promise(r=>setTimeout(r,600));
-      await startCam();
-      startCam._fallback=false;
-    }
   }
 }
 
@@ -1480,39 +1531,88 @@ function startZxingDecode(video){
   const reader=new ZX.MultiFormatReader();
   reader.setHints(hints);
 
+  // Dos canvas: uno para el frame crudo, otro para intentar rotado
   const canvas=document.getElementById('reader-canvas');
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  // Canvas auxiliar para frame rotado 90° (útil para Code128 en portrait)
+  const canvasR=document.createElement('canvas');
+  const ctxR=canvasR.getContext('2d',{willReadFrequently:true});
+
   let frameCount=0;
+  let firstLog=true;
   dbg.log('ZXing decode loop iniciado');
+
+  /* Intentar decodificar un ImageData con ZXing */
+  const tryDecode=(imageData,w,h)=>{
+    const lum=new ZX.RGBLuminanceSource(imageData.data,w,h);
+    const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
+    return reader.decode(bmp); // lanza NotFoundException si no hay código
+  };
 
   const loop=()=>{
     if(!camDecoding)return;
-    // readyState>=1 (HAVE_METADATA) es suficiente para tener frames
     if(video.paused||video.readyState<1||!video.videoWidth){
       requestAnimationFrame(loop);
       return;
     }
-    // Usar 480px max — suficiente para Code128 y más rápido que 640
-    const scale=Math.min(1,480/video.videoWidth);
-    const cw=Math.max(1,Math.floor(video.videoWidth*scale));
-    const ch=Math.max(1,Math.floor(video.videoHeight*scale));
+
+    const vw=video.videoWidth;
+    const vh=video.videoHeight;
+    const isPortrait=vh>vw;
+
+    // Escalar al lado más largo máx 640px para buena resolución en Code128
+    const maxPx=640;
+    const scale=Math.min(1,maxPx/Math.max(vw,vh));
+    const cw=Math.max(1,Math.floor(vw*scale));
+    const ch=Math.max(1,Math.floor(vh*scale));
+
     if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
     ctx.drawImage(video,0,0,cw,ch);
+
     frameCount++;
-    if(frameCount===30)dbg.log(`ZXing: 30 frames OK — canvas ${cw}x${ch}`);
+    if(firstLog&&frameCount>=5){
+      firstLog=false;
+      dbg.log(`ZXing activo — canvas ${cw}x${ch} portrait=${isPortrait} scale=${scale.toFixed(2)}`);
+    }
+
+    let decoded=false;
+    // Intento 1: frame normal
     try{
       const id=ctx.getImageData(0,0,cw,ch);
-      const lum=new ZX.RGBLuminanceSource(id.data,cw,ch);
-      const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
-      const res=reader.decode(bmp);
+      const res=tryDecode(id,cw,ch);
       if(res){
-        dbg.log('DECODED: '+res.getText().slice(0,40));
+        dbg.log('DECODED normal: '+res.getText().slice(0,50));
         handleScan(res.getText());
-        setTimeout(()=>requestAnimationFrame(loop),300);
-        return;
+        decoded=true;
       }
-    }catch(e){/* NotFoundException es normal */}
-    setTimeout(()=>requestAnimationFrame(loop),60);
+    }catch(e){}
+
+    // Intento 2: frame rotado 90° — Code128 horizontal en video portrait
+    // Solo si el frame normal no decodificó y el video está en portrait
+    if(!decoded&&isPortrait){
+      try{
+        // Rotar 90°: nuevo ancho=ch original, nuevo alto=cw original
+        if(canvasR.width!==ch||canvasR.height!==cw){canvasR.width=ch;canvasR.height=cw;}
+        ctxR.save();
+        ctxR.translate(ch/2,cw/2);
+        ctxR.rotate(Math.PI/2);
+        ctxR.drawImage(canvas,-cw/2,-ch/2,cw,ch);
+        ctxR.restore();
+        const idR=ctxR.getImageData(0,0,ch,cw);
+        const res=tryDecode(idR,ch,cw);
+        if(res){
+          dbg.log('DECODED rotado: '+res.getText().slice(0,50));
+          handleScan(res.getText());
+          decoded=true;
+        }
+      }catch(e){}
+    }
+
+    if(decoded){
+      setTimeout(()=>requestAnimationFrame(loop),350);
+    } else {
+      setTimeout(()=>requestAnimationFrame(loop),60);
+    }
   };
   requestAnimationFrame(loop);
 }
