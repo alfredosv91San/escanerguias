@@ -9,7 +9,14 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <title>EscanerGuías</title>
-<script src="https://unpkg.com/@zxing/library@0.19.1/umd/index.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+<script>
+if(typeof Html5Qrcode==='undefined'){
+  const s=document.createElement('script');
+  s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';
+  document.head.appendChild(s);
+}
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -1121,12 +1128,9 @@ const cfgSet=(k,v)=>idbPut('config',{key:k,value:v});
 ══════════════════════════════════════ */
 let records=[],choferes=[],extraCols=[],dupCount=0;
 let guidSet=new Set(),activeChofer='';
-let camOn=false,facing='environment',camStream=null,camDecoding=false;
+let camOn=false,facing='environment',html5Qr=null;
 let sortCol='timestamp',sortAsc=false,filterCh=null,torchOn=false;
 let lastCode='',lastTime=0;
-// Lista de cámaras detectadas
-let availableCams=[];
-let selectedCamId='';
 
 const today=()=>new Date().toLocaleDateString('es-MX');
 const nowStr=()=>new Date().toLocaleString('es-MX');
@@ -1288,365 +1292,83 @@ function toggleDebug(){
 }
 
 /* ══════════════════════════════════════
-   DETECTAR CÁMARAS
-══════════════════════════════════════ */
-async function detectCameras(){
-  // Solo enumerar — sin pedir permisos todavía
-  try{
-    const devices=await navigator.mediaDevices.enumerateDevices();
-    availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
-    dbg.log(`detectCameras: ${availableCams.length} cámaras — ${availableCams.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
-    renderCamSelector();
-  }catch(e){
-    dbg.warn('detectCameras sin permiso aún — OK, se reintenta al iniciar');
-  }
-}
-
-function isFrontCam(cam){
-  const lbl=(cam.label||'').toLowerCase();
-  if(/facing back|,\s*facing back/i.test(lbl))return false;
-  if(/facing front|,\s*facing front|frontal|selfie/i.test(lbl))return true;
-  return /\bfront\b|\buser\b/i.test(lbl);
-}
-
-function findMainBackCam(cams){
-  if(!cams||!cams.length)return null;
-  const backs=cams.filter(c=>!isFrontCam(c));
-  const pool=backs.length?backs:cams;
-  // Ordenar por número en label — número bajo = principal (camera 0 > camera 2)
-  const sorted=pool.slice().sort((a,b)=>{
-    const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
-    const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
-    return na-nb;
-  });
-  // Evitar lentes secundarias solo si hay más de una opción
-  const filtered=sorted.filter(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
-  const result=(filtered.length?filtered:sorted)[0];
-  dbg.log(`findMainBackCam pool: ${sorted.map(c=>c.label||c.id.slice(0,6)).join(' | ')} → ${result?.label||'?'}`);
-  return result||null;
-}
-
-/* Intentar abrir cámaras traseras una por una hasta que una funcione.
-   En Android algunos deviceIds aparecen en enumerateDevices pero no abren (cámaras virtuales).
-   Llamado solo desde startCam cuando el deviceId preferido falla. */
-async function tryOpenBackCam(excludeIds=[]){
-  const backs=availableCams.filter(c=>!isFrontCam(c)&&!excludeIds.includes(c.id));
-  dbg.log(`tryOpenBackCam: intentando ${backs.length} cámaras — excluidas: ${excludeIds.length}`);
-  for(const cam of backs){
-    try{
-      dbg.log(`  probando "${cam.label}" id=${cam.id.slice(0,12)}`);
-      const s=await navigator.mediaDevices.getUserMedia({
-        video:{deviceId:{exact:cam.id},width:{ideal:1280},height:{ideal:720}},
-        audio:false
-      });
-      dbg.log(`  ABRIÓ "${cam.label}" ✓`);
-      return {stream:s, cam};
-    }catch(e){
-      dbg.warn(`  falló "${cam.label}": ${e.message}`);
-    }
-  }
-  // Último recurso: facingMode sin deviceId
-  dbg.warn('tryOpenBackCam: todos fallaron, usando facingMode:environment');
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},
-      audio:false
-    });
-    return {stream:s, cam:null};
-  }catch(e){
-    dbg.err('tryOpenBackCam facingMode fallback falló: '+e.message);
-    throw e;
-  }
-}
-
-function renderCamSelector(){
-  const wrap=document.getElementById('cam-selector-wrap');
-  const sel=document.getElementById('cam-select');
-  if(!availableCams||!availableCams.length||!wrap||!sel)return;
-  wrap.style.display='block';
-  sel.innerHTML=availableCams.map((cam,i)=>{
-    const label=cam.label||('Cámara '+(i+1));
-    return `<option value="${cam.id}">${label}</option>`;
-  }).join('');
-  if(!selectedCamId){
-    const main=findMainBackCam(availableCams);
-    const pick=main||availableCams[0];
-    sel.value=pick.id;
-    selectedCamId=pick.id;
-  } else {
-    sel.value=selectedCamId;
-  }
-  dbg.log(`renderCamSelector: selectedCamId=${selectedCamId.slice(0,12)}...`);
-}
-
-function onCamSelectChange(){
-  const sel=document.getElementById('cam-select');
-  selectedCamId=sel.value;
-  const cam=availableCams.find(c=>c.id===selectedCamId);
-  facing=cam&&isFrontCam(cam)?'user':'environment';
-  dbg.log(`onCamSelectChange → facing=${facing} label="${cam?.label||'?'}"`);
-  if(camOn)stopCam().then(()=>startCam());
-}
-
-/* ══════════════════════════════════════
-   CÁMARA
+   CÁMARA (html5-qrcode engine)
 ══════════════════════════════════════ */
 async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
 async function startCam(){
   if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
+  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara cargando, espera un momento');return;}
   try{
-    // Limpiar stream anterior
-    if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
-    camDecoding=false;
-
-    // Re-enumerar con permisos ya otorgados — labels llegan llenos ahora
-    try{
-      const devices=await navigator.mediaDevices.enumerateDevices();
-      const found=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
-      if(found.length){availableCams=found;renderCamSelector();}
-      dbg.log(`startCam enum: ${availableCams.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
-    }catch(e){dbg.warn('enum error: '+e.message);}
-
-    // ── Elegir cámara ──────────────────────────────────────────────────────
-    // switchCam ya puso facing correcto. Si hay selectedCamId úsarlo directo.
-    // Para la trasera: si tenemos deviceId confirmado de facing=environment úsarlo.
-    // Nunca mezclar deviceId + width/height en un mismo nivel — va en video:{}.
-    // Nunca usar facingMode:{exact} — Firefox lo rechaza.
-
-    if(facing==='user'){
-      // ── FRONTAL ──────────────────────────────────────────────────────────
-      const front=availableCams.find(c=>isFrontCam(c));
-      const fid=front?.id||null;
-      dbg.log(`facing=user → ${front?.label||'facingMode fallback'}`);
-      const videoObj=fid
-        ?{deviceId:{exact:fid},width:{ideal:1280},height:{ideal:720}}
-        :{facingMode:'user',width:{ideal:1280},height:{ideal:720}};
-      dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
-      camStream=await navigator.mediaDevices.getUserMedia({video:videoObj,audio:false});
-      if(fid){selectedCamId=fid;const sel=document.getElementById('cam-select');if(sel)sel.value=fid;}
-
-    } else {
-      // ── TRASERA — intentar en orden, saltar las que no abran ─────────────
-      // Primero intentar el selectedCamId actual si es trasera
-      const currentCam=availableCams.find(c=>c.id===selectedCamId);
-      const preferredId=(currentCam&&!isFrontCam(currentCam))?selectedCamId:null;
-
-      // Ordenar traseras: preferida primero, luego las demás por número
-      const backs=availableCams.filter(c=>!isFrontCam(c));
-      const ordered=backs.slice().sort((a,b)=>{
-        if(a.id===preferredId)return -1;
-        if(b.id===preferredId)return 1;
-        const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
-        const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
-        return na-nb;
-      });
-      dbg.log(`traseras ordenadas: ${ordered.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
-
-      let opened=false;
-      for(const cam of ordered){
-        try{
-          const videoObj={deviceId:{exact:cam.id},width:{ideal:1280},height:{ideal:720}};
-          dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
-          camStream=await navigator.mediaDevices.getUserMedia({video:videoObj,audio:false});
-          selectedCamId=cam.id;
-          const sel=document.getElementById('cam-select');if(sel)sel.value=cam.id;
-          dbg.log(`trasera abierta: "${cam.label}"`);
-          opened=true;
-          break;
-        }catch(e){
-          dbg.warn(`falló "${cam.label}": ${e.message} — probando siguiente`);
-          await new Promise(r=>setTimeout(r,300));
-        }
-      }
-      if(!opened){
-        // Último recurso absoluto
-        dbg.warn('todos los deviceIds fallaron — usando facingMode:environment');
-        camStream=await navigator.mediaDevices.getUserMedia({
-          video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}},audio:false
-        });
-        selectedCamId='';
-      }
-    }
-
-    const track=camStream.getVideoTracks()[0];
-    const settings=track.getSettings();
-    dbg.log(`stream OK — ${settings.width}x${settings.height} facing=${settings.facingMode||'?'} deviceId=${(settings.deviceId||'').slice(0,12)}`);
-
-    // Autofocus — silencioso
-    try{await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}
-    catch(e){dbg.warn('focusMode not supported: '+e.message);}
-
-    const video=document.getElementById('reader');
-    video.srcObject=camStream;
-    video.style.display='block';
-
-    // Esperar metadata (Firefox necesita esto antes de play)
-    await new Promise(resolve=>{
-      if(video.readyState>=1){resolve();return;}
-      video.onloadedmetadata=resolve;
-      setTimeout(resolve,3500);
+    if(html5Qr){try{await html5Qr.stop();}catch(e){}}
+    html5Qr=new Html5Qrcode('reader',{
+      experimentalFeatures:{useBarCodeDetectorIfSupported:true},
+      verbose:false
     });
-    try{await video.play();}catch(e){dbg.warn('play() blocked: '+e.message);}
-    dbg.log(`video playing — videoWidth=${video.videoWidth} readyState=${video.readyState}`);
-
+    await html5Qr.start(
+      {facingMode:facing},
+      {
+        fps:25,
+        qrbox:(w,h)=>({width:Math.floor(w*0.88),height:Math.floor(h*0.45)}),
+        aspectRatio:1.7778,
+        formatsToSupport:[
+          Html5QrcodeSupportedFormats.CODE_128,
+          Html5QrcodeSupportedFormats.QR_CODE,
+          Html5QrcodeSupportedFormats.EAN_13,
+          Html5QrcodeSupportedFormats.EAN_8,
+          Html5QrcodeSupportedFormats.UPC_A,
+          Html5QrcodeSupportedFormats.CODE_39,
+          Html5QrcodeSupportedFormats.DATA_MATRIX,
+          Html5QrcodeSupportedFormats.PDF_417,
+          Html5QrcodeSupportedFormats.ITF,
+          Html5QrcodeSupportedFormats.AZTEC
+        ],
+        showTorchButtonIfSupported:false,
+        showZoomSliderIfSupported:false,
+        defaultZoomValueIfSupported:2,
+        videoConstraints:(()=>{
+          const w=parseInt(document.getElementById('set-res')?.value||'1280');
+          const h=w===1920?1080:w===1280?720:480;
+          return{facingMode:facing,width:{ideal:w},height:{ideal:h},focusMode:'continuous',advanced:[{zoom:2}]};
+        })()
+      },
+      code=>handleScan(code),
+      _=>{}
+    );
     camOn=true;
-    document.getElementById('btn-cam').innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
-    document.getElementById('btn-cam').className='btn-cam-main stop';
-    const activeCam=availableCams.find(cam=>cam.id===selectedCamId);
-    const camLabel=activeCam?.label||(facing==='environment'?'Cámara trasera':'Cámara frontal');
+    const btn=document.getElementById('btn-cam');
+    btn.innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
+    btn.className='btn btn-red btn-main';
     const badge=document.getElementById('cam-badge');
-    badge.textContent='🟢 EN VIVO · '+camLabel;
+    badge.textContent='🟢 EN VIVO · '+(facing==='environment'?'Cámara trasera':'Cámara frontal');
     badge.className='cam-badge live';
-
-    startZxingDecode(video);
-
   }catch(e){
-    const msg=e?.message||String(e);
-    dbg.err('startCam FAIL definitivo: '+msg);
-    toast('Error cámara: '+msg);
+    toast('Error cámara: '+e.message);
+    console.error(e);
   }
 }
 
-/* ══════════════════════════════════════
-   ZXING DECODE LOOP
-   - readyState>=1 suficiente (Firefox se queda en 2)
-   - videoWidth>0 guard contra race condition
-   - 480px max para Code128 en móviles lentos
-   - TRY_HARDER para barras finas
-   - Pausa inteligente: 60ms si no detectó, 300ms tras éxito
-══════════════════════════════════════ */
-function startZxingDecode(video){
-  camDecoding=true;
-  const ZX=window.ZXing;
-  if(!ZX){dbg.err('ZXing no disponible');toast('⚠ ZXing no cargado, recarga');return;}
-
-  const hints=new Map();
-  const F=ZX.BarcodeFormat;
-  hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[
-    F.CODE_128,F.QR_CODE,F.CODE_39,F.EAN_13,F.EAN_8,
-    F.UPC_A,F.UPC_E,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC
-  ]);
-  hints.set(ZX.DecodeHintType.TRY_HARDER,true);
-  const reader=new ZX.MultiFormatReader();
-  reader.setHints(hints);
-
-  // Dos canvas: uno para el frame crudo, otro para intentar rotado
-  const canvas=document.getElementById('reader-canvas');
-  const ctx=canvas.getContext('2d',{willReadFrequently:true});
-  // Canvas auxiliar para frame rotado 90° (útil para Code128 en portrait)
-  const canvasR=document.createElement('canvas');
-  const ctxR=canvasR.getContext('2d',{willReadFrequently:true});
-
-  let frameCount=0;
-  let firstLog=true;
-  dbg.log('ZXing decode loop iniciado');
-
-  /* Intentar decodificar un ImageData con ZXing */
-  const tryDecode=(imageData,w,h)=>{
-    const lum=new ZX.RGBLuminanceSource(imageData.data,w,h);
-    const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
-    return reader.decode(bmp); // lanza NotFoundException si no hay código
-  };
-
-  const loop=()=>{
-    if(!camDecoding)return;
-    if(video.paused||video.readyState<1||!video.videoWidth){
-      requestAnimationFrame(loop);
-      return;
-    }
-
-    const vw=video.videoWidth;
-    const vh=video.videoHeight;
-    const isPortrait=vh>vw;
-
-    // Escalar al lado más largo máx 640px para buena resolución en Code128
-    const maxPx=640;
-    const scale=Math.min(1,maxPx/Math.max(vw,vh));
-    const cw=Math.max(1,Math.floor(vw*scale));
-    const ch=Math.max(1,Math.floor(vh*scale));
-
-    if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
-    ctx.drawImage(video,0,0,cw,ch);
-
-    frameCount++;
-    if(firstLog&&frameCount>=5){
-      firstLog=false;
-      dbg.log(`ZXing activo — canvas ${cw}x${ch} portrait=${isPortrait} scale=${scale.toFixed(2)}`);
-    }
-
-    let decoded=false;
-    // Intento 1: frame normal
-    try{
-      const id=ctx.getImageData(0,0,cw,ch);
-      const res=tryDecode(id,cw,ch);
-      if(res){
-        dbg.log('DECODED normal: '+res.getText().slice(0,50));
-        handleScan(res.getText());
-        decoded=true;
-      }
-    }catch(e){}
-
-    // Intento 2: frame rotado 90° — Code128 horizontal en video portrait
-    // Solo si el frame normal no decodificó y el video está en portrait
-    if(!decoded&&isPortrait){
-      try{
-        // Rotar 90°: nuevo ancho=ch original, nuevo alto=cw original
-        if(canvasR.width!==ch||canvasR.height!==cw){canvasR.width=ch;canvasR.height=cw;}
-        ctxR.save();
-        ctxR.translate(ch/2,cw/2);
-        ctxR.rotate(Math.PI/2);
-        ctxR.drawImage(canvas,-cw/2,-ch/2,cw,ch);
-        ctxR.restore();
-        const idR=ctxR.getImageData(0,0,ch,cw);
-        const res=tryDecode(idR,ch,cw);
-        if(res){
-          dbg.log('DECODED rotado: '+res.getText().slice(0,50));
-          handleScan(res.getText());
-          decoded=true;
-        }
-      }catch(e){}
-    }
-
-    if(decoded){
-      setTimeout(()=>requestAnimationFrame(loop),350);
-    } else {
-      setTimeout(()=>requestAnimationFrame(loop),60);
-    }
-  };
-  requestAnimationFrame(loop);
-}
-
 async function stopCam(){
-  dbg.log('stopCam — limpiando stream');
-  camDecoding=false;
-  if(camStream){camStream.getTracks().forEach(t=>{try{t.stop();}catch(e){}});camStream=null;}
-  const video=document.getElementById('reader');
-  if(video){video.srcObject=null;video.style.display='none';video.onloadedmetadata=null;}
+  if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
   camOn=false;
   const btn=document.getElementById('btn-cam');
   btn.innerHTML='<span class="btn-main-ico">▶</span> INICIAR CÁMARA';
-  btn.className='btn-cam-main start';
-  document.getElementById('cam-badge').textContent='📵 Cámara apagada';
-  document.getElementById('cam-badge').className='cam-badge';
+  btn.className='btn btn-primary btn-main';
+  const badge=document.getElementById('cam-badge');
+  badge.textContent='📵 Cámara apagada';
+  badge.className='cam-badge';
 }
 
 async function switchCam(){
-  const newFacing=facing==='environment'?'user':'environment';
-  dbg.log(`switchCam: ${facing} → ${newFacing}`);
-  facing=newFacing;
-  // Limpiar selectedCamId para que startCam elija la cámara correcta según facing
-  selectedCamId='';
-  if(camOn){await stopCam();await startCam();}
-  else{toast('Inicia la cámara primero');}
+  facing=facing==='environment'?'user':'environment';
+  if(camOn){await stopCam();await startCam();}else toast('Inicia la cámara primero');
 }
 
 async function toggleTorch(){
-  if(!camStream||!camOn){toast('Inicia la cámara primero');return;}
+  if(!html5Qr||!camOn){toast('Inicia la cámara primero');return;}
   try{
     torchOn=!torchOn;
-    const track=camStream.getVideoTracks()[0];
-    await track.applyConstraints({advanced:[{torch:torchOn}]});
+    await html5Qr.applyVideoConstraints({advanced:[{torch:torchOn}]});
     document.getElementById('btn-torch').textContent=torchOn?'💡':'🔦';
     toast(torchOn?'🔦 Linterna ON':'🔦 Linterna OFF');
   }catch(e){toast('Linterna no disponible');torchOn=false;}
@@ -2171,81 +1893,44 @@ function saveZonaChofer(){localStorage.setItem('activeChofer_'+activeZona,active
 /* ══════════════════════════════════════
    BUSCAR POR CÁMARA
 ══════════════════════════════════════ */
-let camSearchStream=null,camSearchDecoding=false;
+let camSearchScanner=null;
 function startCamSearch(){
+  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara aún cargando');return;}
   document.getElementById('camsearch-modal-bg').classList.add('show');
   document.getElementById('camsearch-result').innerHTML=
     '<div style="color:var(--text2);font-size:0.78rem;text-align:center;padding:12px">Apunta al código de barras...</div>';
-  setTimeout(async()=>{
-    try{
-      if(camSearchStream){camSearchStream.getTracks().forEach(t=>t.stop());camSearchStream=null;}
-      camSearchDecoding=false;
-      camSearchStream=await navigator.mediaDevices.getUserMedia({
-        video:{facingMode:{exact:'environment'},width:{ideal:1280},height:{ideal:720}}
-      });
-      const video=document.getElementById('camsearch-reader');
-      video.srcObject=camSearchStream;
-      video.style.display='block';
-      await video.play();
-      camSearchDecoding=true;
-      const ZX=window.ZXing;
-      if(!ZX){toast('⚠ ZXing no cargado');return;}
-      const hints=new Map();
-      const F=ZX.BarcodeFormat;
-      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS,[F.CODE_128,F.QR_CODE,F.CODE_39,F.EAN_13,F.EAN_8,F.UPC_A,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC]);
-      hints.set(ZX.DecodeHintType.TRY_HARDER,true);
-      const zreader=new ZX.MultiFormatReader();
-      zreader.setHints(hints);
-      const canvas=document.createElement('canvas');
-      const ctx=canvas.getContext('2d',{willReadFrequently:true});
-      let lastCode='',lastTime=0;
-      const loop=()=>{
-        if(!camSearchDecoding)return;
-        if(video.paused||video.readyState<3){requestAnimationFrame(loop);return;}
-        const scale=Math.min(1,640/video.videoWidth);
-        canvas.width=video.videoWidth*scale||640;
-        canvas.height=video.videoHeight*scale||480;
-        ctx.drawImage(video,0,0,canvas.width,canvas.height);
-        try{
-          const id=ctx.getImageData(0,0,canvas.width,canvas.height);
-          const lum=new ZX.RGBLuminanceSource(id.data,canvas.width,canvas.height);
-          const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
-          const res=zreader.decode(bmp);
-          if(res){
-            const code=res.getText();
-            if(code!==lastCode||Date.now()-lastTime>2500){
-              lastCode=code;lastTime=Date.now();
-              const r=records.find(x=>x.guia===code.trim());
-              const el=document.getElementById('camsearch-result');
-              if(r){
-                el.innerHTML=`<div style="background:var(--success-light);border:2px solid var(--success);border-radius:var(--r-sm);padding:14px">
-                  <div style="font-weight:900;font-size:1rem;font-family:var(--mono);color:var(--success);margin-bottom:8px">✅ ENCONTRADA</div>
-                  <div style="font-size:0.85rem;font-weight:800;font-family:var(--mono)">${esc(r.guia)}</div>
-                  <div style="font-size:0.78rem;margin-top:6px">👤 <strong>${esc(r.chofer||'Sin asignar')}</strong></div>
-                  <div style="font-size:0.72rem;color:var(--text2)">${r.fecha||''} ${r.hora||''} · ${r.tipo||''}</div>
-                </div>`;
-              } else {
-                el.innerHTML=`<div style="background:var(--danger-light);border:2px solid var(--danger);border-radius:var(--r-sm);padding:14px">
-                  <div style="font-weight:900;color:var(--danger);margin-bottom:6px">❌ NO ENCONTRADA</div>
-                  <div style="font-size:0.82rem;font-family:var(--mono)">${esc(code)}</div>
-                  <div style="font-size:0.72rem;color:var(--text2);margin-top:4px">No está en los registros actuales</div>
-                </div>`;
-              }
-            }
-          }
-        }catch(e){}
-        setTimeout(()=>requestAnimationFrame(loop),100);
-      };
-      requestAnimationFrame(loop);
-    }catch(e){toast('Error cámara búsqueda: '+e.message);}
+  setTimeout(()=>{
+    if(camSearchScanner)try{camSearchScanner.clear();}catch(e){}
+    camSearchScanner=new Html5Qrcode('camsearch-reader');
+    camSearchScanner.start(
+      {facingMode:'environment'},
+      {fps:8,qrbox:{width:240,height:110}},
+      (code)=>{
+        const r=records.find(x=>x.guia===code.trim());
+        const el=document.getElementById('camsearch-result');
+        if(r){
+          el.innerHTML=`<div style="background:var(--success-light);border:2px solid var(--success);border-radius:var(--r-sm);padding:14px">
+            <div style="font-weight:900;font-size:1rem;font-family:var(--mono);color:var(--success);margin-bottom:8px">✅ ENCONTRADA</div>
+            <div style="font-size:0.85rem;font-weight:800;font-family:var(--mono)">${esc(r.guia)}</div>
+            <div style="font-size:0.78rem;margin-top:6px">👤 <strong>${esc(r.chofer||'Sin asignar')}</strong></div>
+            <div style="font-size:0.72rem;color:var(--text2)">${r.fecha||''} ${r.hora||''} · ${r.tipo||''}</div>
+          </div>`;
+        } else {
+          el.innerHTML=`<div style="background:var(--danger-light);border:2px solid var(--danger);border-radius:var(--r-sm);padding:14px">
+            <div style="font-weight:900;color:var(--danger);margin-bottom:6px">❌ NO ENCONTRADA</div>
+            <div style="font-size:0.82rem;font-family:var(--mono)">${esc(code)}</div>
+            <div style="font-size:0.72rem;color:var(--text2);margin-top:4px">No está en los registros actuales</div>
+          </div>`;
+        }
+        try{camSearchScanner.pause();}catch(e){}
+        setTimeout(()=>{try{camSearchScanner.resume();}catch(e){}},2500);
+      },()=>{}
+    ).catch(()=>{});
   },300);
 }
 function closeCamSearch(){
   document.getElementById('camsearch-modal-bg').classList.remove('show');
-  camSearchDecoding=false;
-  if(camSearchStream){camSearchStream.getTracks().forEach(t=>t.stop());camSearchStream=null;}
-  const video=document.getElementById('camsearch-reader');
-  if(video){video.srcObject=null;video.style.display='none';}
+  if(camSearchScanner){try{camSearchScanner.stop().catch(()=>{});}catch(e){}camSearchScanner=null;}
 }
 document.getElementById('camsearch-modal-bg').addEventListener('click',e=>{
   if(e.target===document.getElementById('camsearch-modal-bg'))closeCamSearch();
@@ -2671,18 +2356,7 @@ async function init(){
   }
   updateStats();updateChoferBox();renderRecents();
 
-  // Detectar cámaras disponibles al inicio (requiere permiso de cámara previamente otorgado)
-  // Se intenta silenciosamente; si no hay permiso aún, se detectan al iniciar la cámara
-  try{
-    if(typeof Html5Qrcode!=='undefined'){
-      await detectCameras();
-    } else {
-      // Reintentar cuando la librería termine de cargar
-      setTimeout(async()=>{
-        if(typeof Html5Qrcode!=='undefined')await detectCameras();
-      },2000);
-    }
-  }catch(e){}
+  // html5-qrcode maneja la cámara internamente — no se necesita detectar al inicio
 }
 
 window.addEventListener('DOMContentLoaded',init);
