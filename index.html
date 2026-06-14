@@ -846,7 +846,7 @@ tr:hover td{background:var(--accent-light)}
       <input type="number" class="input-text" id="set-ab" value="0" style="width:80px;flex:0 0 auto;text-align:center" min="0">
     </div>
     <div class="srow">
-      <div><div class="slabel">Modo compatibilidad cámara</div><div class="shint">Activa si tu teléfono tiene 3 cámaras o imagen borrosa</div></div>
+      <div><div class="slabel">Modo compatibilidad</div><div class="shint">Activa si la cámara no inicia o la imagen sale borrosa</div></div>
       <label class="toggle"><input type="checkbox" id="set-compat" onchange="saveCompatMode()"><span class="tsl"></span></label>
     </div>
   </div>
@@ -1255,26 +1255,32 @@ async function detectCameras(){
   try{
     if(typeof Html5Qrcode==='undefined')return;
     availableCams=await Html5Qrcode.getCameras();
-    if(!availableCams||!availableCams.length)return;
-
-    const wrap=document.getElementById('cam-selector-wrap');
-    const sel=document.getElementById('cam-select');
-
-    // Solo mostrar selector si hay más de 1 cámara
-    if(availableCams.length>1){
-      wrap.style.display='block';
-      sel.innerHTML=availableCams.map((c,i)=>`<option value="${c.id}">${c.label||('Cámara '+(i+1))}</option>`).join('');
-      // Pre-seleccionar la cámara principal trasera
-      const main=findMainBackCam(availableCams);
-      if(main){
-        sel.value=main.id;
-        selectedCamId=main.id;
-      } else {
-        selectedCamId=availableCams[0].id;
-      }
-    }
+    renderCamSelector();
   }catch(e){
-    console.warn('getCameras error:',e);
+    console.warn('getCameras error (se reintenta al iniciar):',e);
+  }
+}
+
+function renderCamSelector(){
+  if(!availableCams||!availableCams.length)return;
+  const wrap=document.getElementById('cam-selector-wrap');
+  const sel=document.getElementById('cam-select');
+  // Siempre mostrar selector si hay más de 1 cámara
+  if(availableCams.length>1){
+    wrap.style.display='block';
+    sel.innerHTML=availableCams.map((cam,i)=>{
+      const label=cam.label||('Cámara '+(i+1));
+      return `<option value="${cam.id}">${label}</option>`;
+    }).join('');
+    // Pre-seleccionar trasera principal solo si no hay una ya elegida
+    if(!selectedCamId){
+      const backCams=availableCams.filter(cam=>!/front|frontal|user|selfie/i.test(cam.label||''));
+      const main=findMainBackCam(backCams.length?backCams:availableCams);
+      if(main){sel.value=main.id;selectedCamId=main.id;}
+      else{sel.value=availableCams[0].id;selectedCamId=availableCams[0].id;}
+    } else {
+      sel.value=selectedCamId;
+    }
   }
 }
 
@@ -1307,34 +1313,32 @@ async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 
 async function startCam(){
   if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
-  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara cargando, espera');return;}
+  if(typeof Html5Qrcode==='undefined'){toast('⚠ Librería de cámara cargando, espera un momento');return;}
 
   try{
-    if(html5Qr){try{await html5Qr.stop();}catch(e){}}
+    if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
+
+    // Si aún no tenemos lista de cámaras, intentar detectar ahora (requiere permiso)
+    if(!availableCams.length){
+      try{availableCams=await Html5Qrcode.getCameras();}catch(e){availableCams=[];}
+      renderCamSelector();
+    }
 
     const compatMode=loadCompatMode();
 
-    // ── Construir videoConstraints ──
+    // ── Construir videoConstraints (sin focusMode — va en advanced separado) ──
     let videoConstraints;
 
     if(selectedCamId){
-      // Usar la cámara seleccionada por deviceId (más preciso que facingMode)
-      videoConstraints={
-        deviceId:{exact:selectedCamId},
-        width:{ideal:1280},
-        height:{ideal:720},
-        focusMode:'continuous'
-        // Sin zoom forzado — zoom=2 causa borroso en multicámara con lente equivocada
-      };
+      videoConstraints={deviceId:{exact:selectedCamId},width:{ideal:1280},height:{ideal:720}};
     } else if(facing==='user'){
       videoConstraints={facingMode:'user',width:{ideal:640},height:{ideal:480}};
     } else {
-      // Sin selección manual: intentar detectar y usar cámara principal
       if(availableCams.length>0){
-        const mainCam=findMainBackCam(availableCams.filter(c=>!/front|frontal|user|selfie/i.test(c.label)));
+        const backCams=availableCams.filter(c=>!/front|frontal|user|selfie/i.test(c.label||''));
+        const mainCam=findMainBackCam(backCams.length?backCams:availableCams);
         if(mainCam){
-          videoConstraints={deviceId:{exact:mainCam.id},width:{ideal:1280},height:{ideal:720},focusMode:'continuous'};
-          // Sincronizar selector
+          videoConstraints={deviceId:{exact:mainCam.id},width:{ideal:1280},height:{ideal:720}};
           const sel=document.getElementById('cam-select');
           if(sel)sel.value=mainCam.id;
           selectedCamId=mainCam.id;
@@ -1343,29 +1347,21 @@ async function startCam(){
       if(!videoConstraints){
         const w=parseInt(document.getElementById('set-res')?.value||'1280');
         const h=w===1920?1080:w===1280?720:480;
-        videoConstraints={facingMode:'environment',width:{ideal:w},height:{ideal:h},focusMode:'continuous'};
+        videoConstraints={facingMode:'environment',width:{ideal:w},height:{ideal:h}};
       }
     }
 
-    // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android — siempre desactivado
+    // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
     html5Qr=new Html5Qrcode('reader',{
       experimentalFeatures:{useBarCodeDetectorIfSupported:false},
       verbose:false
     });
 
-    await html5Qr.start(
-      videoConstraints,
-      {
-        // 30fps en normal, 20 en compat — Code 128 necesita más frames para líneas finas
-        fps:compatMode?20:30,
-        // qrbox más ancho y más alto: Code 128 es horizontal, necesita zona amplia
-        // Sin aspectRatio forzado — deja que la cámara use su proporción nativa
-        qrbox:(w,h)=>({
-          width:Math.floor(w*0.92),
-          height:Math.floor(h*0.38)   // franja horizontal amplia, ideal para barcodes
-        }),
-        // Sin aspectRatio — el 16:9 forzado comprimía la zona de detección vertical
-        formatsToSupport:[
+    // Formatos con fallback seguro por si Html5QrcodeSupportedFormats no está disponible
+    let fmts=null;
+    try{
+      if(typeof Html5QrcodeSupportedFormats!=='undefined'){
+        fmts=[
           Html5QrcodeSupportedFormats.CODE_128,
           Html5QrcodeSupportedFormats.QR_CODE,
           Html5QrcodeSupportedFormats.EAN_13,
@@ -1376,27 +1372,35 @@ async function startCam(){
           Html5QrcodeSupportedFormats.PDF_417,
           Html5QrcodeSupportedFormats.ITF,
           Html5QrcodeSupportedFormats.AZTEC
-        ],
-        showTorchButtonIfSupported:false,
-        showZoomSliderIfSupported:false
-      },
-      code=>handleScan(code),
-      _=>{}
-    );
+        ].filter(f=>f!==undefined);
+      }
+    }catch(e){fmts=null;}
+
+    const scanConfig={
+      fps:compatMode?20:30,
+      qrbox:(w,h)=>({width:Math.floor(w*0.92),height:Math.floor(h*0.38)}),
+      showTorchButtonIfSupported:false,
+      showZoomSliderIfSupported:false
+    };
+    if(fmts&&fmts.length)scanConfig.formatsToSupport=fmts;
+
+    await html5Qr.start(videoConstraints,scanConfig,code=>handleScan(code),_=>{});
 
     camOn=true;
     const btn=document.getElementById('btn-cam');
     btn.innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
     btn.className='btn-cam-main stop';
     const badge=document.getElementById('cam-badge');
-    // Mostrar qué cámara está activa
     const activeCam=availableCams.find(c=>c.id===selectedCamId);
     const camLabel=activeCam?(activeCam.label||'Cámara'):(facing==='environment'?'Cámara trasera':'Cámara frontal');
     badge.textContent='🟢 EN VIVO · '+camLabel;
     badge.className='cam-badge live';
 
+    // Intentar autofocus continuo como constraint adicional (no crítico)
+    try{await html5Qr.applyVideoConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
+
   }catch(e){
-    toast('Error cámara: '+e.message);
+    toast('Error cámara: '+(e.message||e));
     console.error(e);
   }
 }
