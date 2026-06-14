@@ -1257,53 +1257,62 @@ async function detectCameras(){
     availableCams=await Html5Qrcode.getCameras();
     renderCamSelector();
   }catch(e){
-    console.warn('getCameras error (se reintenta al iniciar):',e);
+    // Permission denied al inicio es esperado — se reintenta al presionar INICIAR
   }
+}
+
+/* Clasifica una cámara como frontal basándose en su label.
+   Cubot King Kong reporta: "facing front 1", "facing back 0", "facing back 2" */
+function isFrontCam(cam){
+  const lbl=(cam.label||'').toLowerCase();
+  if(/facing\s+front|front\s+\d|frontal|selfie/i.test(lbl))return true;
+  if(/facing\s+back|back\s+\d/i.test(lbl))return false;
+  return /\bfront\b|\buser\b/i.test(lbl);
+}
+
+/* Elige la trasera principal entre varias:
+   - Prefiere "back 0" (cámara principal en Cubot y similares)
+   - Evita ultra-wide, macro, depth, tele
+   - Si los labels son opacos, toma la primera trasera */
+function findMainBackCam(cams){
+  if(!cams||!cams.length)return null;
+  const backs=cams.filter(c=>!isFrontCam(c));
+  const pool=backs.length?backs:cams;
+  const back0=pool.find(c=>/back\s*0|back\s*camera\s*0/i.test(c.label||''));
+  if(back0)return back0;
+  const main=pool.find(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
+  if(main)return main;
+  return pool[0];
 }
 
 function renderCamSelector(){
   if(!availableCams||!availableCams.length)return;
   const wrap=document.getElementById('cam-selector-wrap');
   const sel=document.getElementById('cam-select');
-  // Siempre mostrar selector si hay más de 1 cámara
   if(availableCams.length>1){
     wrap.style.display='block';
     sel.innerHTML=availableCams.map((cam,i)=>{
       const label=cam.label||('Cámara '+(i+1));
       return `<option value="${cam.id}">${label}</option>`;
     }).join('');
-    // Pre-seleccionar trasera principal solo si no hay una ya elegida
     if(!selectedCamId){
-      const backCams=availableCams.filter(cam=>!/front|frontal|user|selfie/i.test(cam.label||''));
-      const main=findMainBackCam(backCams.length?backCams:availableCams);
-      if(main){sel.value=main.id;selectedCamId=main.id;}
-      else{sel.value=availableCams[0].id;selectedCamId=availableCams[0].id;}
+      const main=findMainBackCam(availableCams);
+      const pick=main||availableCams[0];
+      sel.value=pick.id;
+      selectedCamId=pick.id;
     } else {
       sel.value=selectedCamId;
     }
   }
 }
 
-/* Heurística para encontrar la cámara trasera principal en multicámara */
-function findMainBackCam(cams){
-  // Filtrar solo las traseras (evitar frontal/selfie)
-  const back=cams.filter(c=>!/front|frontal|user|selfie/i.test(c.label));
-  if(!back.length)return cams[0];
-
-  // De las traseras, evitar ultra-wide, macro, depth, tele
-  const main=back.find(c=>!/wide|ultra|macro|depth|tele|bokeh/i.test(c.label));
-  if(main)return main;
-
-  // Si todas tienen nombre extraño (sin etiqueta legible), tomar la primera trasera
-  return back[0];
-}
-
 function onCamSelectChange(){
   const sel=document.getElementById('cam-select');
   selectedCamId=sel.value;
-  if(camOn){
-    stopCam().then(()=>startCam());
-  }
+  // Sincronizar facing según la cámara elegida manualmente
+  const cam=availableCams.find(c=>c.id===selectedCamId);
+  if(cam)facing=isFrontCam(cam)?'user':'environment';
+  if(camOn)stopCam().then(()=>startCam());
 }
 
 /* ══════════════════════════════════════
@@ -1326,27 +1335,27 @@ async function startCam(){
 
     const compatMode=loadCompatMode();
 
-    // html5-qrcode exige que videoConstraints tenga EXACTAMENTE 1 key:
-    // {deviceId: id}  ó  {facingMode: '...'}  — nada más mezclado.
-    // La resolución va por videoConstraints adicional en scanConfig.
-    let camConstraint;
+    /* html5-qrcode v2: primer argumento acepta:
+       (A) string deviceId  — fuerza esa cámara exacta (más confiable)
+       (B) objeto {facingMode:'environment'|'user'}  — Chrome elige
+       NO mezclar keys. Si tenemos deviceId lo usamos como string directo. */
+    let camArg;
     if(selectedCamId){
-      camConstraint={deviceId:selectedCamId};
-    } else if(facing==='user'){
-      camConstraint={facingMode:'user'};
+      // Forma A: más explícito y confiable que {deviceId:{exact:...}}
+      camArg=selectedCamId;
     } else {
-      // Intentar elegir trasera principal por deviceId
+      // Forma B: fallback si no hay deviceId todavía
+      // Intentar auto-seleccionar trasera principal primero
       if(availableCams.length>0){
-        const backCams=availableCams.filter(cam=>!/front|frontal|user|selfie/i.test(cam.label||''));
-        const mainCam=findMainBackCam(backCams.length?backCams:availableCams);
+        const mainCam=findMainBackCam(availableCams);
         if(mainCam){
-          camConstraint={deviceId:mainCam.id};
+          selectedCamId=mainCam.id;
           const sel=document.getElementById('cam-select');
           if(sel)sel.value=mainCam.id;
-          selectedCamId=mainCam.id;
+          camArg=mainCam.id;
         }
       }
-      if(!camConstraint)camConstraint={facingMode:'environment'};
+      if(!camArg)camArg={facingMode:facing==='user'?'user':'environment'};
     }
 
     // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
@@ -1387,7 +1396,7 @@ async function startCam(){
     };
     if(fmts&&fmts.length)scanConfig.formatsToSupport=fmts;
 
-    await html5Qr.start(camConstraint,scanConfig,code=>handleScan(code),_=>{});
+    await html5Qr.start(camArg,scanConfig,code=>handleScan(code),_=>{});
 
     camOn=true;
     const btn=document.getElementById('btn-cam');
@@ -1423,20 +1432,17 @@ async function stopCam(){
 async function switchCam(){
   if(facing==='environment'){
     facing='user';
-    // Buscar cámara frontal por deviceId
-    const frontCam=availableCams.find(c=>/front|frontal|user|selfie/i.test(c.label));
-    selectedCamId=frontCam?frontCam.id:'';
+    // Buscar frontal con isFrontCam (maneja "facing front 1" de Cubot)
+    const front=availableCams.find(c=>isFrontCam(c));
+    selectedCamId=front?front.id:'';
   } else {
     facing='environment';
-    // Volver a cámara trasera principal
-    const backCams=availableCams.filter(c=>!/front|frontal|user|selfie/i.test(c.label));
-    const mainCam=findMainBackCam(backCams);
-    selectedCamId=mainCam?mainCam.id:'';
+    // Volver a trasera principal (maneja "facing back 0" de Cubot)
+    const main=findMainBackCam(availableCams);
+    selectedCamId=main?main.id:'';
   }
-  // Sincronizar select
   const sel=document.getElementById('cam-select');
   if(sel&&selectedCamId)sel.value=selectedCamId;
-
   if(camOn){await stopCam();await startCam();}
   else toast('Inicia la cámara primero');
 }
