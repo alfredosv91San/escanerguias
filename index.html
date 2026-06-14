@@ -627,6 +627,23 @@ tr:hover td{background:var(--accent-light)}
   background:var(--surface);padding-bottom:10px;margin-bottom:2px;
 }
 
+
+/* ════ DEBUG CONSOLE ════ */
+#dbg-fab{position:fixed;bottom:24px;right:16px;z-index:8000;width:44px;height:44px;border-radius:50%;background:#1e293b;color:#7dd3fc;border:2px solid #334155;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.5);font-family:var(--mono);font-weight:800}
+#dbg-panel{display:none;position:fixed;bottom:0;left:0;right:0;z-index:7999;background:#0f172a;border-top:2px solid #334155;max-height:55vh;flex-direction:column;font-family:var(--mono);font-size:0.68rem}
+#dbg-panel.dbg-open{display:flex}
+#dbg-header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#1e293b;border-bottom:1px solid #334155;flex-shrink:0}
+#dbg-title{color:#7dd3fc;font-weight:800;font-size:0.72rem;letter-spacing:1px;flex:1}
+#dbg-clear{background:#334155;border:none;color:#94a3b8;border-radius:6px;padding:4px 10px;cursor:pointer;font-size:0.65rem;font-family:var(--mono)}
+#dbg-close{background:none;border:none;color:#f87171;font-size:1.1rem;cursor:pointer;padding:2px 6px}
+#dbg-list{overflow-y:auto;flex:1;padding:6px 0}
+.dbg-row{display:flex;gap:8px;padding:4px 12px;border-bottom:1px solid #1e293b;line-height:1.4}
+.dbg-row:hover{background:#1e293b}
+.dbg-t{color:#475569;flex-shrink:0;font-size:0.62rem;margin-top:1px}
+.dbg-m{color:#e2e8f0;word-break:break-all}
+.dbg-warn .dbg-m{color:#fbbf24}
+.dbg-error .dbg-m{color:#f87171;font-weight:700}
+
 </style>
 </head>
 <body>
@@ -1243,74 +1260,95 @@ function updateChoferBox(){
 }
 
 /* ══════════════════════════════════════
-   DETECTAR CÁMARAS DISPONIBLES
+   DEBUG CONSOLE
+══════════════════════════════════════ */
+const dbg={
+  _log:[],
+  log(msg,type='info'){
+    const t=new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const entry={t,msg:String(msg),type};
+    this._log.unshift(entry);
+    if(this._log.length>120)this._log.pop();
+    console.log(`[${t}][${type}] ${msg}`);
+    this._render();
+  },
+  warn(msg){this.log(msg,'warn');},
+  err(msg){this.log(msg,'error');},
+  _render(){
+    const el=document.getElementById('dbg-list');
+    if(!el||!document.getElementById('dbg-panel')?.classList.contains('dbg-open'))return;
+    el.innerHTML=this._log.map(e=>`<div class="dbg-row dbg-${e.type}"><span class="dbg-t">${e.t}</span><span class="dbg-m">${e.msg}</span></div>`).join('');
+  }
+};
+
+function toggleDebug(){
+  const p=document.getElementById('dbg-panel');
+  p.classList.toggle('dbg-open');
+  if(p.classList.contains('dbg-open'))dbg._render();
+}
+
+/* ══════════════════════════════════════
+   DETECTAR CÁMARAS
 ══════════════════════════════════════ */
 async function detectCameras(){
+  // Solo enumerar — sin pedir permisos todavía
   try{
-    if(typeof Html5Qrcode==='undefined')return;
-    availableCams=await Html5Qrcode.getCameras();
-    // Resetear siempre al arrancar: elegir trasera principal como default
-    selectedCamId='';
-    facing='environment';
+    const devices=await navigator.mediaDevices.enumerateDevices();
+    availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
+    dbg.log(`detectCameras: ${availableCams.length} cámaras — ${availableCams.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
     renderCamSelector();
   }catch(e){
-    // Permission denied al inicio es esperado — se reintenta al presionar INICIAR
+    dbg.warn('detectCameras sin permiso aún — OK, se reintenta al iniciar');
   }
 }
 
-/* Clasifica una cámara como frontal.
-   Soporta formatos: "camera 1, facing front" / "facing front 1" / "front" */
 function isFrontCam(cam){
   const lbl=(cam.label||'').toLowerCase();
-  if(/facing\s+back|,\s*facing\s+back/i.test(lbl))return false;
-  if(/facing\s+front|,\s*facing\s+front|frontal|selfie/i.test(lbl))return true;
+  if(/facing back|,\s*facing back/i.test(lbl))return false;
+  if(/facing front|,\s*facing front|frontal|selfie/i.test(lbl))return true;
   return /\bfront\b|\buser\b/i.test(lbl);
 }
 
-/* Elige la trasera principal entre varias.
-   Soporta: "camera 0, facing back" (índice bajo = principal) */
 function findMainBackCam(cams){
   if(!cams||!cams.length)return null;
   const backs=cams.filter(c=>!isFrontCam(c));
   const pool=backs.length?backs:cams;
-  // Preferir "camera 0" — el número más bajo indica cámara principal
   const sorted=pool.slice().sort((a,b)=>{
     const na=parseInt((a.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
     const nb=parseInt((b.label||'').match(/camera\s*(\d+)/i)?.[1]??'99');
     return na-nb;
   });
-  // Evitar lentes secundarias
   const main=sorted.find(c=>!/wide|ultra|macro|depth|tele|bokeh|portrait/i.test(c.label||''));
+  dbg.log(`findMainBackCam → ${(main||sorted[0])?.label||'(sin label)'}`);
   return main||sorted[0];
 }
 
 function renderCamSelector(){
-  if(!availableCams||!availableCams.length)return;
   const wrap=document.getElementById('cam-selector-wrap');
   const sel=document.getElementById('cam-select');
-  if(availableCams.length>1){
-    wrap.style.display='block';
-    sel.innerHTML=availableCams.map((cam,i)=>{
-      const label=cam.label||('Cámara '+(i+1));
-      return `<option value="${cam.id}">${label}</option>`;
-    }).join('');
-    if(!selectedCamId){
-      const main=findMainBackCam(availableCams);
-      const pick=main||availableCams[0];
-      sel.value=pick.id;
-      selectedCamId=pick.id;
-    } else {
-      sel.value=selectedCamId;
-    }
+  if(!availableCams||!availableCams.length||!wrap||!sel)return;
+  wrap.style.display='block';
+  sel.innerHTML=availableCams.map((cam,i)=>{
+    const label=cam.label||('Cámara '+(i+1));
+    return `<option value="${cam.id}">${label}</option>`;
+  }).join('');
+  if(!selectedCamId){
+    const main=findMainBackCam(availableCams);
+    const pick=main||availableCams[0];
+    sel.value=pick.id;
+    selectedCamId=pick.id;
+  } else {
+    sel.value=selectedCamId;
   }
+  dbg.log(`renderCamSelector: selectedCamId=${selectedCamId.slice(0,12)}...`);
 }
 
 function onCamSelectChange(){
   const sel=document.getElementById('cam-select');
   selectedCamId=sel.value;
-  // Sincronizar facing según la cámara elegida manualmente
   const cam=availableCams.find(c=>c.id===selectedCamId);
-  if(cam)facing=isFrontCam(cam)?'user':'environment';
+  facing=cam&&isFrontCam(cam)?'user':'environment';
+  dbg.log(`onCamSelectChange → facing=${facing} label="${cam?.label||'?'}"`);
   if(camOn)stopCam().then(()=>startCam());
 }
 
@@ -1322,102 +1360,115 @@ async function toggleCam(){if(camOn)await stopCam();else await startCam();}
 async function startCam(){
   if(!activeChofer){toast('⚠ Primero selecciona un chofer');openModal();return;}
   try{
+    // Limpiar stream anterior
     if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
     camDecoding=false;
 
-    // Enumerar cámaras — en Firefox los labels llegan vacíos antes del permiso, OK
+    // Re-enumerar con permisos ya otorgados — labels llegan llenos ahora
     try{
       const devices=await navigator.mediaDevices.enumerateDevices();
-      availableCams=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
-      if(availableCams.length)renderCamSelector();
-    }catch(e){}
+      const found=devices.filter(d=>d.kind==='videoinput').map(d=>({id:d.deviceId,label:d.label}));
+      if(found.length){availableCams=found;renderCamSelector();}
+      dbg.log(`startCam enum: ${availableCams.map(c=>c.label||c.id.slice(0,8)).join(' | ')}`);
+    }catch(e){dbg.warn('enum error: '+e.message);}
 
-    // ── Construir constraints ──────────────────────────────────────────────
-    // REGLA: nunca mezclar deviceId + facingMode en el mismo objeto.
-    // REGLA: NO usar facingMode:{exact:...} — Firefox lo rechaza.
-    // REGLA: resolución siempre como hints ideales separados, no exact.
-    let videoConstraints;
+    // ── Elegir cámara ──────────────────────────────────────────────────────
+    // switchCam ya puso facing correcto. Si hay selectedCamId úsarlo directo.
+    // Para la trasera: si tenemos deviceId confirmado de facing=environment úsarlo.
+    // Nunca mezclar deviceId + width/height en un mismo nivel — va en video:{}.
+    // Nunca usar facingMode:{exact} — Firefox lo rechaza.
+
+    let camId = null;
 
     if(facing==='user'){
-      // Frontal: preferir deviceId si lo tenemos, sino facingMode suave
       const front=availableCams.find(c=>isFrontCam(c));
-      if(front&&front.id){
-        videoConstraints={deviceId:{exact:front.id}};
-        selectedCamId=front.id;
-      } else {
-        videoConstraints={facingMode:'user'};
-        selectedCamId='';
-      }
-    } else if(selectedCamId){
-      // Trasera ya elegida manualmente en el selector — deviceId exacto
-      videoConstraints={deviceId:{exact:selectedCamId}};
+      camId=front?.id||null;
+      dbg.log(`facing=user → front cam: ${front?.label||'fallback facingMode'}`);
     } else {
-      // Trasera automática: intentar por deviceId si tenemos lista, sino facingMode suave
-      const back=findMainBackCam(availableCams);
-      if(back&&back.id){
-        videoConstraints={deviceId:{exact:back.id}};
-        selectedCamId=back.id;
+      // environment: si selectedCamId es una cámara trasera confirmada, úsalo
+      const cam=availableCams.find(c=>c.id===selectedCamId);
+      if(cam&&!isFrontCam(cam)){
+        camId=selectedCamId;
+        dbg.log(`facing=env → selectedCamId "${cam.label}"`);
       } else {
-        // facingMode sin exact — compatible Chrome y Firefox
-        videoConstraints={facingMode:'environment'};
-        selectedCamId='';
+        const back=findMainBackCam(availableCams);
+        camId=back?.id||null;
+        if(camId){selectedCamId=camId;const sel=document.getElementById('cam-select');if(sel)sel.value=camId;}
+        dbg.log(`facing=env → autoback "${back?.label||'facingMode fallback'}"`);
       }
     }
 
-    const selEl=document.getElementById('cam-select');
-    if(selEl&&selectedCamId)selEl.value=selectedCamId;
+    // Construir constraint — deviceId como string directo (más compatible que {exact:id})
+    // La resolución va dentro del mismo objeto video:{} pero como hints ideal, no exact
+    const videoObj = camId
+      ? {deviceId:{exact:camId}, width:{ideal:1280}, height:{ideal:720}}
+      : {facingMode: facing==='user'?'user':'environment', width:{ideal:1280}, height:{ideal:720}};
 
-    // Pedir stream — resolución como hint en objeto aparte para no romper constraint de 1 key
-    camStream=await navigator.mediaDevices.getUserMedia({
-      video:{...videoConstraints, width:{ideal:1280}, height:{ideal:720}}
-    });
+    dbg.log(`getUserMedia constraint: ${JSON.stringify(videoObj).slice(0,120)}`);
 
-    // Autofocus continuo — silencioso, no todos los dispositivos lo soportan
-    try{
-      await camStream.getVideoTracks()[0].applyConstraints({advanced:[{focusMode:'continuous'}]});
-    }catch(e){}
+    camStream=await navigator.mediaDevices.getUserMedia({video:videoObj, audio:false});
+
+    const track=camStream.getVideoTracks()[0];
+    const settings=track.getSettings();
+    dbg.log(`stream OK — ${settings.width}x${settings.height} facing=${settings.facingMode||'?'} deviceId=${(settings.deviceId||'').slice(0,12)}`);
+
+    // Autofocus — silencioso
+    try{await track.applyConstraints({advanced:[{focusMode:'continuous'}]});}
+    catch(e){dbg.warn('focusMode not supported: '+e.message);}
 
     const video=document.getElementById('reader');
     video.srcObject=camStream;
     video.style.display='block';
 
-    // Esperar a que el video esté listo antes de hacer play (Firefox lo necesita)
-    await new Promise((resolve,reject)=>{
-      video.onloadedmetadata=()=>resolve();
-      video.onerror=e=>reject(e);
-      setTimeout(resolve,3000); // timeout de seguridad
+    // Esperar metadata (Firefox necesita esto antes de play)
+    await new Promise(resolve=>{
+      if(video.readyState>=1){resolve();return;}
+      video.onloadedmetadata=resolve;
+      setTimeout(resolve,3500);
     });
-    try{await video.play();}catch(e){}
+    try{await video.play();}catch(e){dbg.warn('play() blocked: '+e.message);}
+    dbg.log(`video playing — videoWidth=${video.videoWidth} readyState=${video.readyState}`);
 
     camOn=true;
-    const btn=document.getElementById('btn-cam');
-    btn.innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
-    btn.className='btn-cam-main stop';
-    const badge=document.getElementById('cam-badge');
+    document.getElementById('btn-cam').innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
+    document.getElementById('btn-cam').className='btn-cam-main stop';
     const activeCam=availableCams.find(cam=>cam.id===selectedCamId);
-    const camLabel=activeCam&&activeCam.label?activeCam.label:(facing==='environment'?'Cámara trasera':'Cámara frontal');
+    const camLabel=activeCam?.label||(facing==='environment'?'Cámara trasera':'Cámara frontal');
+    const badge=document.getElementById('cam-badge');
     badge.textContent='🟢 EN VIVO · '+camLabel;
     badge.className='cam-badge live';
 
     startZxingDecode(video);
+
   }catch(e){
-    const msg=e&&e.message?e.message:String(e);
+    const msg=e?.message||String(e);
+    dbg.err('startCam FAIL: '+msg);
     toast('Error cámara: '+msg);
-    console.error('startCam:',e);
+
+    // Si falla con deviceId, reintentar con facingMode puro (Firefox fallback)
+    if(!startCam._fallback&&(msg.includes('Could not start')||msg.includes('NotReadable')||msg.includes('Abort'))){
+      dbg.warn('Reintentando con facingMode puro...');
+      startCam._fallback=true;
+      selectedCamId='';
+      await new Promise(r=>setTimeout(r,600));
+      await startCam();
+      startCam._fallback=false;
+    }
   }
 }
 
-/* ── Loop ZXing ───────────────────────────────────────────────────────────
-   Fixes:
-   - readyState<2 en vez de <3: Firefox nunca llega a readyState 3 con streams
-   - videoWidth==0: esperar hasta tener dimensiones reales antes de decodificar
-   - Escala máxima 640px para no saturar CPU en móviles lentos
-   - TRY_HARDER activo para Code 128 con barras finas
-──────────────────────────────────────────────────────────────────────── */
+/* ══════════════════════════════════════
+   ZXING DECODE LOOP
+   - readyState>=1 suficiente (Firefox se queda en 2)
+   - videoWidth>0 guard contra race condition
+   - 480px max para Code128 en móviles lentos
+   - TRY_HARDER para barras finas
+   - Pausa inteligente: 60ms si no detectó, 300ms tras éxito
+══════════════════════════════════════ */
 function startZxingDecode(video){
   camDecoding=true;
   const ZX=window.ZXing;
-  if(!ZX){toast('⚠ ZXing no cargado aún, reintenta');return;}
+  if(!ZX){dbg.err('ZXing no disponible');toast('⚠ ZXing no cargado, recarga');return;}
 
   const hints=new Map();
   const F=ZX.BarcodeFormat;
@@ -1426,57 +1477,68 @@ function startZxingDecode(video){
     F.UPC_A,F.UPC_E,F.DATA_MATRIX,F.PDF_417,F.ITF,F.AZTEC
   ]);
   hints.set(ZX.DecodeHintType.TRY_HARDER,true);
-
   const reader=new ZX.MultiFormatReader();
   reader.setHints(hints);
+
   const canvas=document.getElementById('reader-canvas');
   const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  let frameCount=0;
+  dbg.log('ZXing decode loop iniciado');
 
   const loop=()=>{
     if(!camDecoding)return;
-    // readyState>=2 (HAVE_CURRENT_DATA) es suficiente — Firefox se queda en 2 con streams
-    if(video.paused||video.readyState<2||video.videoWidth===0){
+    // readyState>=1 (HAVE_METADATA) es suficiente para tener frames
+    if(video.paused||video.readyState<1||!video.videoWidth){
       requestAnimationFrame(loop);
       return;
     }
-    // Escalar a máx 640px ancho para no saturar CPU
-    const scale=Math.min(1,640/video.videoWidth);
-    const cw=Math.floor(video.videoWidth*scale);
-    const ch=Math.floor(video.videoHeight*scale);
-    if(canvas.width!==cw)canvas.width=cw;
-    if(canvas.height!==ch)canvas.height=ch;
+    // Usar 480px max — suficiente para Code128 y más rápido que 640
+    const scale=Math.min(1,480/video.videoWidth);
+    const cw=Math.max(1,Math.floor(video.videoWidth*scale));
+    const ch=Math.max(1,Math.floor(video.videoHeight*scale));
+    if(canvas.width!==cw||canvas.height!==ch){canvas.width=cw;canvas.height=ch;}
     ctx.drawImage(video,0,0,cw,ch);
+    frameCount++;
+    if(frameCount===30)dbg.log(`ZXing: 30 frames OK — canvas ${cw}x${ch}`);
     try{
       const id=ctx.getImageData(0,0,cw,ch);
       const lum=new ZX.RGBLuminanceSource(id.data,cw,ch);
       const bmp=new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
       const res=reader.decode(bmp);
-      if(res)handleScan(res.getText());
-    }catch(e){/* NotFoundException normal — no loguear */}
-    // ~12fps: balance entre detección y batería
-    setTimeout(()=>requestAnimationFrame(loop),80);
+      if(res){
+        dbg.log('DECODED: '+res.getText().slice(0,40));
+        handleScan(res.getText());
+        setTimeout(()=>requestAnimationFrame(loop),300);
+        return;
+      }
+    }catch(e){/* NotFoundException es normal */}
+    setTimeout(()=>requestAnimationFrame(loop),60);
   };
   requestAnimationFrame(loop);
 }
 
 async function stopCam(){
+  dbg.log('stopCam — limpiando stream');
   camDecoding=false;
-  if(camStream){camStream.getTracks().forEach(t=>t.stop());camStream=null;}
+  if(camStream){camStream.getTracks().forEach(t=>{try{t.stop();}catch(e){}});camStream=null;}
   const video=document.getElementById('reader');
-  if(video){video.srcObject=null;video.style.display='none';}
+  if(video){video.srcObject=null;video.style.display='none';video.onloadedmetadata=null;}
   camOn=false;
   const btn=document.getElementById('btn-cam');
   btn.innerHTML='<span class="btn-main-ico">▶</span> INICIAR CÁMARA';
   btn.className='btn-cam-main start';
-  const badge=document.getElementById('cam-badge');
-  badge.textContent='📵 Cámara apagada';
-  badge.className='cam-badge';
+  document.getElementById('cam-badge').textContent='📵 Cámara apagada';
+  document.getElementById('cam-badge').className='cam-badge';
 }
 
 async function switchCam(){
-  facing=facing==='environment'?'user':'environment';
+  const newFacing=facing==='environment'?'user':'environment';
+  dbg.log(`switchCam: ${facing} → ${newFacing}`);
+  facing=newFacing;
+  // Limpiar selectedCamId para que startCam elija la cámara correcta según facing
+  selectedCamId='';
   if(camOn){await stopCam();await startCam();}
-  else toast('Inicia la cámara primero');
+  else{toast('Inicia la cámara primero');}
 }
 
 async function toggleTorch(){
@@ -1847,6 +1909,18 @@ function exportHTML(){
 <body><h2>📦 Guías — ${today()} — ${records.length} registros — ${nowStr()}</h2>
 <table><thead><tr>${hdr.map(h=>`<th>${h.toUpperCase()}</th>`).join('')}</tr></thead>
 <tbody>${records.map(r=>`<tr>${hdr.map(h=>`<td>${esc(r[h]||'')}</td>`).join('')}</tr>`).join('')}</tbody></table>
+
+<!-- DEBUG CONSOLE -->
+<button id="dbg-fab" onclick="toggleDebug()" title="Debug Console">🐛</button>
+<div id="dbg-panel">
+  <div id="dbg-header">
+    <span id="dbg-title">🐛 DEBUG CONSOLE</span>
+    <button id="dbg-clear" onclick="dbg._log=[];dbg._render()">LIMPIAR</button>
+    <button id="dbg-close" onclick="toggleDebug()">✕</button>
+  </div>
+  <div id="dbg-list"></div>
+</div>
+
 </body></html>`,'text/html');
   toast('HTML ✓');
   confirmExpCard(document.querySelector('[onclick="exportHTML()"]'));
@@ -2322,6 +2396,18 @@ tbody td{padding:6px 8px;border-bottom:1px solid #e2e8f0}
 @media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact}button{display:none}}
 </style></head><body>${manifiestos}
 <script>window.onload=()=>{window.print();}<\/script>
+
+<!-- DEBUG CONSOLE -->
+<button id="dbg-fab" onclick="toggleDebug()" title="Debug Console">🐛</button>
+<div id="dbg-panel">
+  <div id="dbg-header">
+    <span id="dbg-title">🐛 DEBUG CONSOLE</span>
+    <button id="dbg-clear" onclick="dbg._log=[];dbg._render()">LIMPIAR</button>
+    <button id="dbg-close" onclick="toggleDebug()">✕</button>
+  </div>
+  <div id="dbg-list"></div>
+</div>
+
 </body></html>`);
   win.document.close();
   toast('✓ Abriendo manifiesto para imprimir');
@@ -2524,5 +2610,17 @@ async function showDiag(){
   }catch(e){alert('ERR: '+e.message);}
 }
 </script>
+
+<!-- DEBUG CONSOLE -->
+<button id="dbg-fab" onclick="toggleDebug()" title="Debug Console">🐛</button>
+<div id="dbg-panel">
+  <div id="dbg-header">
+    <span id="dbg-title">🐛 DEBUG CONSOLE</span>
+    <button id="dbg-clear" onclick="dbg._log=[];dbg._render()">LIMPIAR</button>
+    <button id="dbg-close" onclick="toggleDebug()">✕</button>
+  </div>
+  <div id="dbg-list"></div>
+</div>
+
 </body>
 </html>
