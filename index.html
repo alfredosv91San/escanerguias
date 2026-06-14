@@ -1327,36 +1327,28 @@ async function startCam(){
   try{
     if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
 
-    // Detectar cámaras si aún no tenemos lista (necesita permiso, se pide al hacer start)
-    if(!availableCams.length){
-      try{availableCams=await Html5Qrcode.getCameras();}catch(e){availableCams=[];}
-      renderCamSelector();
-    }
-
     const compatMode=loadCompatMode();
 
-    /* html5-qrcode v2: primer argumento acepta:
-       (A) string deviceId  — fuerza esa cámara exacta (más confiable)
-       (B) objeto {facingMode:'environment'|'user'}  — Chrome elige
-       NO mezclar keys. Si tenemos deviceId lo usamos como string directo. */
-    let camArg;
-    if(selectedCamId){
-      // Forma A: más explícito y confiable que {deviceId:{exact:...}}
-      camArg=selectedCamId;
-    } else {
-      // Forma B: fallback si no hay deviceId todavía
-      // Intentar auto-seleccionar trasera principal primero
-      if(availableCams.length>0){
-        const mainCam=findMainBackCam(availableCams);
-        if(mainCam){
-          selectedCamId=mainCam.id;
-          const sel=document.getElementById('cam-select');
-          if(sel)sel.value=mainCam.id;
-          camArg=mainCam.id;
-        }
-      }
-      if(!camArg)camArg={facingMode:facing==='user'?'user':'environment'};
+    // SIEMPRE refrescar lista de cámaras — el permiso ya fue dado al llegar aquí.
+    // Sin deviceId concreto, Chrome en Android ignora facingMode y abre frontal.
+    try{availableCams=await Html5Qrcode.getCameras();}catch(e){}
+    if(availableCams.length)renderCamSelector();
+
+    // Si no tenemos deviceId, elegir según facing actual
+    if(!selectedCamId && availableCams.length){
+      const pick = facing==='user'
+        ? (availableCams.find(c=>isFrontCam(c)) || availableCams[0])
+        : (findMainBackCam(availableCams) || availableCams[0]);
+      selectedCamId=pick.id;
+      const sel=document.getElementById('cam-select');
+      if(sel)sel.value=pick.id;
     }
+
+    // Pasar deviceId como string directo — más confiable que {deviceId:{exact:}} en Android.
+    // Fallback a facingMode solo si no hay ninguna cámara listada.
+    const camArg = selectedCamId
+      ? selectedCamId
+      : {facingMode: facing==='user'?'user':'environment'};
 
     // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
     html5Qr=new Html5Qrcode('reader',{
@@ -1430,19 +1422,26 @@ async function stopCam(){
 }
 
 async function switchCam(){
+  // Asegurar lista de cámaras antes de buscar por deviceId
+  if(!availableCams.length){
+    try{availableCams=await Html5Qrcode.getCameras();}catch(e){}
+  }
+
+  // Alternar facing y buscar deviceId correspondiente
   if(facing==='environment'){
     facing='user';
-    // Buscar frontal con isFrontCam (maneja "facing front 1" de Cubot)
     const front=availableCams.find(c=>isFrontCam(c));
-    selectedCamId=front?front.id:'';
+    if(!front){toast('No se encontró cámara frontal');facing='environment';return;}
+    selectedCamId=front.id;
   } else {
     facing='environment';
-    // Volver a trasera principal (maneja "facing back 0" de Cubot)
     const main=findMainBackCam(availableCams);
-    selectedCamId=main?main.id:'';
+    if(!main){toast('No se encontró cámara trasera');facing='user';return;}
+    selectedCamId=main.id;
   }
+
   const sel=document.getElementById('cam-select');
-  if(sel&&selectedCamId)sel.value=selectedCamId;
+  if(sel)sel.value=selectedCamId;
   if(camOn){await stopCam();await startCam();}
   else toast('Inicia la cámara primero');
 }
