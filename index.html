@@ -1318,7 +1318,7 @@ async function startCam(){
   try{
     if(html5Qr){try{await html5Qr.stop();}catch(e){}html5Qr=null;}
 
-    // Si aún no tenemos lista de cámaras, intentar detectar ahora (requiere permiso)
+    // Detectar cámaras si aún no tenemos lista (necesita permiso, se pide al hacer start)
     if(!availableCams.length){
       try{availableCams=await Html5Qrcode.getCameras();}catch(e){availableCams=[];}
       renderCamSelector();
@@ -1326,29 +1326,27 @@ async function startCam(){
 
     const compatMode=loadCompatMode();
 
-    // ── Construir videoConstraints (sin focusMode — va en advanced separado) ──
-    let videoConstraints;
-
+    // html5-qrcode exige que videoConstraints tenga EXACTAMENTE 1 key:
+    // {deviceId: id}  ó  {facingMode: '...'}  — nada más mezclado.
+    // La resolución va por videoConstraints adicional en scanConfig.
+    let camConstraint;
     if(selectedCamId){
-      videoConstraints={deviceId:{exact:selectedCamId},width:{ideal:1280},height:{ideal:720}};
+      camConstraint={deviceId:selectedCamId};
     } else if(facing==='user'){
-      videoConstraints={facingMode:'user',width:{ideal:640},height:{ideal:480}};
+      camConstraint={facingMode:'user'};
     } else {
+      // Intentar elegir trasera principal por deviceId
       if(availableCams.length>0){
-        const backCams=availableCams.filter(c=>!/front|frontal|user|selfie/i.test(c.label||''));
+        const backCams=availableCams.filter(cam=>!/front|frontal|user|selfie/i.test(cam.label||''));
         const mainCam=findMainBackCam(backCams.length?backCams:availableCams);
         if(mainCam){
-          videoConstraints={deviceId:{exact:mainCam.id},width:{ideal:1280},height:{ideal:720}};
+          camConstraint={deviceId:mainCam.id};
           const sel=document.getElementById('cam-select');
           if(sel)sel.value=mainCam.id;
           selectedCamId=mainCam.id;
         }
       }
-      if(!videoConstraints){
-        const w=parseInt(document.getElementById('set-res')?.value||'1280');
-        const h=w===1920?1080:w===1280?720:480;
-        videoConstraints={facingMode:'environment',width:{ideal:w},height:{ideal:h}};
-      }
+      if(!camConstraint)camConstraint={facingMode:'environment'};
     }
 
     // BarcodeDetector nativo de Chrome es inestable con Code 128 en Android
@@ -1357,7 +1355,11 @@ async function startCam(){
       verbose:false
     });
 
-    // Formatos con fallback seguro por si Html5QrcodeSupportedFormats no está disponible
+    // Resolución preferida — va como videoConstraints dentro de scanConfig
+    const w=parseInt(document.getElementById('set-res')?.value||'1280');
+    const h=w===1920?1080:w===1280?720:480;
+
+    // Formatos con fallback seguro
     let fmts=null;
     try{
       if(typeof Html5QrcodeSupportedFormats!=='undefined'){
@@ -1378,30 +1380,32 @@ async function startCam(){
 
     const scanConfig={
       fps:compatMode?20:30,
-      qrbox:(w,h)=>({width:Math.floor(w*0.92),height:Math.floor(h*0.38)}),
+      qrbox:(vw,vh)=>({width:Math.floor(vw*0.92),height:Math.floor(vh*0.38)}),
+      videoConstraints:{width:{ideal:w},height:{ideal:h}},
       showTorchButtonIfSupported:false,
       showZoomSliderIfSupported:false
     };
     if(fmts&&fmts.length)scanConfig.formatsToSupport=fmts;
 
-    await html5Qr.start(videoConstraints,scanConfig,code=>handleScan(code),_=>{});
+    await html5Qr.start(camConstraint,scanConfig,code=>handleScan(code),_=>{});
 
     camOn=true;
     const btn=document.getElementById('btn-cam');
     btn.innerHTML='<span class="btn-main-ico">⏹</span> PARAR CÁMARA';
     btn.className='btn-cam-main stop';
     const badge=document.getElementById('cam-badge');
-    const activeCam=availableCams.find(c=>c.id===selectedCamId);
+    const activeCam=availableCams.find(cam=>cam.id===selectedCamId);
     const camLabel=activeCam?(activeCam.label||'Cámara'):(facing==='environment'?'Cámara trasera':'Cámara frontal');
     badge.textContent='🟢 EN VIVO · '+camLabel;
     badge.className='cam-badge live';
 
-    // Intentar autofocus continuo como constraint adicional (no crítico)
+    // Autofocus continuo — intento silencioso, no crítico
     try{await html5Qr.applyVideoConstraints({advanced:[{focusMode:'continuous'}]});}catch(e){}
 
   }catch(e){
-    toast('Error cámara: '+(e.message||e));
-    console.error(e);
+    const msg=e&&e.message?e.message:String(e);
+    toast('Error cámara: '+msg);
+    console.error('startCam error:',e);
   }
 }
 
