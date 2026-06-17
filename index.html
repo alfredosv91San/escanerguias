@@ -108,6 +108,48 @@ if(typeof Html5Qrcode==='undefined'){
   --hero-shadow: 0 4px 24px rgba(22,163,74,.38);
 }
 
+/* ── TEMA BLACK NEON ── */
+[data-theme="black"] {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --surface2: #111111;
+  --surface3: #1a1a1a;
+  --accent: #00ff88;
+  --accent-light: #001a0d;
+  --accent2: #ff00aa;
+  --accent2-light: #1a0011;
+  --success: #00ff88;
+  --success-light: #001a0d;
+  --danger: #ff2244;
+  --danger-light: #1a0008;
+  --warn: #ffee00;
+  --warn-light: #1a1600;
+  --text: #ffffff;
+  --text2: #aaffcc;
+  --text3: #336644;
+  --border: #00ff8833;
+  --border2: #00ff8818;
+  --shadow: 0 0 12px rgba(0,255,136,.10), 0 2px 8px rgba(0,0,0,.8);
+  --shadow-lg: 0 0 32px rgba(0,255,136,.18), 0 8px 40px rgba(0,0,0,.9);
+  --hero-grad: linear-gradient(140deg,#00cc66 0%,#007744 100%);
+  --hero-shadow: 0 0 32px rgba(0,255,136,.45);
+  --neon-glow: 0 0 8px rgba(0,255,136,.7), 0 0 24px rgba(0,255,136,.3);
+  --neon-glow2: 0 0 8px rgba(255,0,170,.7), 0 0 24px rgba(255,0,170,.3);
+}
+[data-theme="black"] .logo { text-shadow: var(--neon-glow); }
+[data-theme="black"] .logo span { text-shadow: var(--neon-glow2); }
+[data-theme="black"] .stat-n { text-shadow: var(--neon-glow); }
+[data-theme="black"] .cnt-badge { box-shadow: var(--neon-glow); }
+[data-theme="black"] .tab.active { text-shadow: 0 0 8px var(--accent); }
+[data-theme="black"] .btn-primary { box-shadow: var(--neon-glow); }
+[data-theme="black"] .btn-green { box-shadow: var(--neon-glow); }
+[data-theme="black"] header { border-bottom-color: #00ff8844; box-shadow: 0 0 20px rgba(0,255,136,.12); }
+[data-theme="black"] .card { border-color: #00ff8822; }
+[data-theme="black"] .flash.ok { text-shadow: var(--neon-glow); box-shadow: var(--neon-glow); }
+[data-theme="black"] .db-pill.ok { box-shadow: 0 0 8px rgba(0,255,136,.5); }
+[data-theme="black"] .chofer-hero { box-shadow: var(--hero-shadow); }
+[data-theme="black"] .manifest-big { box-shadow: var(--neon-glow); }
+
 /* ════════════════════════════════════════
    BASE
 ════════════════════════════════════════ */
@@ -444,6 +486,33 @@ tr:hover td{background:var(--accent-light)}
 .empty-state{text-align:center;padding:52px 20px;color:var(--text2);font-size:0.95rem}
 
 /* ════════════════════════════════════════
+   WHATSAPP SHARE BAR
+════════════════════════════════════════ */
+#share-bar{
+  display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--surface);border:1.5px solid #25d366;border-radius:20px;
+  padding:10px 16px;z-index:8000;box-shadow:0 4px 24px rgba(37,211,102,.25);
+  animation:none;white-space:nowrap;max-width:calc(100vw - 32px);
+  display:none;align-items:center;gap:10px;
+}
+#share-bar.show{display:flex;animation:shareIn .3s cubic-bezier(.22,1,.36,1)}
+@keyframes shareIn{from{opacity:0;transform:translateX(-50%) translateY(30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+#share-bar .sb-txt{font-size:0.78rem;font-weight:700;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#share-bar .sb-wa{
+  background:#25d366;color:#fff;border:none;border-radius:14px;
+  font-family:var(--font);font-size:0.78rem;font-weight:800;
+  padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  white-space:nowrap;transition:all .15s;flex-shrink:0;
+}
+#share-bar .sb-wa:active{transform:scale(.94)}
+#share-bar .sb-close{
+  background:none;border:none;cursor:pointer;color:var(--text2);
+  font-size:1.1rem;padding:4px 6px;border-radius:8px;flex-shrink:0;
+  transition:background .15s;
+}
+#share-bar .sb-close:active{background:var(--surface2)}
+
+/* ════════════════════════════════════════
    EXPORT
 ════════════════════════════════════════ */
 .exp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
@@ -635,9 +704,8 @@ tr:hover td{background:var(--accent-light)}
 }
 
 
-/* ════ DEBUG CONSOLE ════ */
-#dbg-fab{position:fixed;bottom:24px;right:16px;z-index:8000;width:44px;height:44px;border-radius:50%;background:#1e293b;color:#7dd3fc;border:2px solid #334155;font-size:1.1rem;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,.5);font-family:var(--mono);font-weight:800}
-#dbg-panel{display:none;position:fixed;bottom:0;left:0;right:0;z-index:7999;background:#0f172a;border-top:2px solid #334155;max-height:55vh;flex-direction:column;font-family:var(--mono);font-size:0.68rem}
+/* ════ DEBUG CONSOLE (inline en Config) ════ */
+#dbg-panel{display:none;background:#0f172a;border-radius:var(--r-sm);border:1.5px solid #334155;max-height:52vh;flex-direction:column;font-family:var(--mono);font-size:0.68rem;overflow:hidden}
 #dbg-panel.dbg-open{display:flex}
 #dbg-header{display:flex;align-items:center;gap:8px;padding:8px 14px;background:#1e293b;border-bottom:1px solid #334155;flex-shrink:0}
 #dbg-title{color:#7dd3fc;font-weight:800;font-size:0.72rem;letter-spacing:1px;flex:1}
@@ -646,6 +714,9 @@ tr:hover td{background:var(--accent-light)}
 #dbg-list{overflow-y:auto;flex:1;padding:6px 0}
 .dbg-row{display:flex;gap:8px;padding:4px 12px;border-bottom:1px solid #1e293b;line-height:1.4}
 .dbg-row:hover{background:#1e293b}
+/* DIAG panel inline en Config */
+#diag-panel{display:none;background:#111;color:#0f0;font:11px monospace;padding:10px;border-radius:var(--r-sm);max-height:52vh;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border:1.5px solid #0f0;margin-top:8px}
+#diag-panel.open{display:block}
 .dbg-t{color:#475569;flex-shrink:0;font-size:0.62rem;margin-top:1px}
 .dbg-m{color:#e2e8f0;word-break:break-all}
 .dbg-warn .dbg-m{color:#fbbf24}
@@ -669,6 +740,8 @@ tr:hover td{background:var(--accent-light)}
         style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#312e81;cursor:pointer;padding:0;transition:all .2s"></button>
       <button onclick="setTheme('green')" id="tbtn-green" title="Tema Verde"
         style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#16a34a;cursor:pointer;padding:0;transition:all .2s"></button>
+      <button onclick="setTheme('black')" id="tbtn-black" title="Tema Black Neon"
+        style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#000;cursor:pointer;padding:0;transition:all .2s;box-shadow:0 0 6px #00ff88,inset 0 0 6px rgba(0,255,136,.3)"></button>
     </div>
     <div class="hdr-chofer-chip" id="hdr-chofer-chip" onclick="openModal()" title="Chofer activo">
       <div class="chip-av" id="hdr-chip-av">?</div>
@@ -902,6 +975,27 @@ tr:hover td{background:var(--accent-light)}
       <button class="btn btn-red" style="flex:1;font-size:0.68rem" onclick="clearAll(true)">Borrar TODO</button>
     </div>
   </div>
+
+  <div class="sec">
+    <div class="sec-title">🔍 Diagnóstico de Cámara</div>
+    <div class="abox abox-info" style="font-size:0.72rem;margin-bottom:10px">Útil si la cámara no inicia o hay problemas de permisos.</div>
+    <button class="btn btn-secondary" style="width:100%;font-size:0.78rem" onclick="toggleDiag()">🔍 Ejecutar diagnóstico</button>
+    <div id="diag-panel"></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">🐛 Consola de Debug</div>
+    <div class="abox abox-info" style="font-size:0.72rem;margin-bottom:10px">Registro de eventos internos. Útil para reportar errores.</div>
+    <button class="btn btn-secondary" style="width:100%;font-size:0.78rem" onclick="toggleDebug()">🐛 Abrir consola</button>
+    <div id="dbg-panel" style="margin-top:8px">
+      <div id="dbg-header">
+        <span id="dbg-title">🐛 DEBUG CONSOLE</span>
+        <button id="dbg-clear" onclick="dbg._log=[];dbg._render()">LIMPIAR</button>
+        <button id="dbg-close" onclick="toggleDebug()">✕</button>
+      </div>
+      <div id="dbg-list"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════ MODAL CHOFER ══════ -->
@@ -1063,6 +1157,16 @@ tr:hover td{background:var(--accent-light)}
       <button class="btn btn-secondary" onclick="document.getElementById('choedit-modal-bg').classList.remove('show')">✕ CANCELAR</button>
     </div>
   </div>
+</div>
+
+<!-- WHATSAPP SHARE BAR -->
+<div id="share-bar">
+  <span class="sb-txt">📊 <span id="sb-filename">archivo.xlsx</span></span>
+  <button class="sb-wa" id="sb-btn" onclick="shareViaWhatsApp(window._lastExcelFilename)">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+    Compartir
+  </button>
+  <button class="sb-close" onclick="hideShareBar()">✕</button>
 </div>
 
 <div id="toast"></div>
@@ -1289,7 +1393,59 @@ const dbg={
 function toggleDebug(){
   const p=document.getElementById('dbg-panel');
   p.classList.toggle('dbg-open');
-  if(p.classList.contains('dbg-open'))dbg._render();
+  if(p.classList.contains('dbg-open')){
+    dbg._render();
+    // asegurar que Config esté visible
+    const sp=document.getElementById('settings-panel');
+    if(sp&&!sp.classList.contains('active')){
+      document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      document.querySelector('[data-tab="settings"]')?.classList.add('active');
+      sp.classList.add('active');
+    }
+    setTimeout(()=>p.scrollIntoView({behavior:'smooth',block:'nearest'}),100);
+  }
+}
+
+async function toggleDiag(){
+  const dp=document.getElementById('diag-panel');
+  if(dp.classList.contains('open')){dp.classList.remove('open');return;}
+  dp.classList.add('open');
+  dp.textContent='Ejecutando diagnóstico...';
+  let t='═══ DIAGNÓSTICO CÁMARA ═══\n';
+  t+='URL: '+location.href+'\n';
+  t+='Protocolo: '+location.protocol+(location.protocol==='https:'?' ✅':' ❌ (necesita HTTPS)')+'\n';
+  t+='UA: '+navigator.userAgent.slice(0,90)+'\n';
+  t+='mediaDevices: '+(!!navigator.mediaDevices?'✅':'❌')+'\n';
+  t+='getUserMedia: '+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?'✅':'❌')+'\n';
+  t+='Html5Qrcode: '+(typeof Html5Qrcode!=='undefined'?'✅':'❌')+'\n\n';
+  try{
+    if(navigator.permissions&&navigator.permissions.query){
+      const p=await navigator.permissions.query({name:'camera'});
+      t+='Permiso cámara: '+p.state+'\n\n';
+    }
+  }catch(e){t+='Permiso cámara: no consultable\n\n';}
+  try{
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
+    const tr=s.getVideoTracks()[0];
+    t+='✅ getUserMedia OK\n';
+    t+='   Track: '+(tr?tr.label:'?')+'\n';
+    const set=tr?tr.getSettings():{};
+    t+='   Settings: '+JSON.stringify(set)+'\n\n';
+    s.getTracks().forEach(x=>x.stop());
+  }catch(e){
+    t+='❌ getUserMedia FALLÓ\n   name: '+e.name+'\n   msg: '+e.message+'\n\n';
+  }
+  try{
+    const cams=await Html5Qrcode.getCameras();
+    t+='CÁMARAS DETECTADAS: '+cams.length+'\n';
+    for(let i=0;i<cams.length;i++){
+      t+='  ['+i+'] '+(cams[i].label||'(sin label)')+'\n';
+      t+='      id='+cams[i].id.slice(0,20)+'...\n';
+    }
+    t+='\nselectedCamId='+(selectedCamId||'(ninguno)')+'\nfacing='+facing+'\ncamOn='+camOn+'\n';
+  }catch(e){t+='❌ Html5Qrcode.getCameras() falló: '+e.message+'\n';}
+  dp.textContent=t;
 }
 
 /* ══════════════════════════════════════
@@ -1323,8 +1479,10 @@ async function refreshCamList(){
         o.textContent=(c.label||('Cámara '+(i+1)));
         sel.appendChild(o);
       });
-      if(!selectedCamId&&camList.length){
-        // Preferir cámara trasera por label
+      // Restaurar preferencia guardada si sigue disponible
+      const savedOK=selectedCamId&&camList.some(c=>c.id===selectedCamId);
+      if(savedOK){sel.value=selectedCamId;}
+      else if(camList.length){
         const back=camList.find(c=>/back|rear|environment|trasera|posterior/i.test(c.label||''));
         selectedCamId=(back||camList[camList.length-1]).id;
         sel.value=selectedCamId;
@@ -1342,6 +1500,7 @@ function onCamSelectChange(){
   const sel=document.getElementById('cam-select');
   if(!sel)return;
   selectedCamId=sel.value;
+  cfgSet('selectedCamId',selectedCamId); // persistir preferencia
   if(camOn){stopCam().then(startCam);}
 }
 
@@ -1823,6 +1982,26 @@ function buildExcelChoferColumns(){
   return{matrix,chMap,chNames};
 }
 
+async function shareViaWhatsApp(filename){
+  // Intentar Web Share API primero (funciona en Android Chrome/Safari iOS)
+  const blob=window._lastExcelBlob;
+  if(blob && navigator.canShare && navigator.canShare({files:[new File([blob],filename,{type:blob.type})]})){
+    try{
+      await navigator.share({
+        title:'Reporte de Guías',
+        text:`📦 Reporte: ${filename}`,
+        files:[new File([blob],filename,{type:blob.type})]
+      });
+      return;
+    }catch(e){
+      if(e.name==='AbortError')return; // usuario canceló
+    }
+  }
+  // Fallback: abrir WhatsApp con mensaje de texto
+  const msg=encodeURIComponent(`📦 Reporte de guías exportado: *${filename}*\nDescargado el ${nowStr()}`);
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+
 function exportExcel(){
   if(!records.length){toast('No hay datos');return;}
   const wb=XLSX.utils.book_new();
@@ -1844,9 +2023,18 @@ function exportExcel(){
   const wsSum=XLSX.utils.aoa_to_sheet(sumData);
   wsSum['!cols']=[{wch:28},{wch:14},{wch:40}];
   XLSX.utils.book_append_sheet(wb,wsSum,'Resumen');
-  XLSX.writeFile(wb,`guias_${today().replace(/\//g,'-')}.xlsx`);
+  const filename=`guias_${today().replace(/\//g,'-')}.xlsx`;
+  // Guardar blob para compartir después
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  window._lastExcelBlob=new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  // Descargar
+  const url=URL.createObjectURL(window._lastExcelBlob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
   toast('Excel descargado ✓');
   confirmExpCard(document.querySelector('[onclick="exportExcel()"]'));
+  // Mostrar botón de compartir por WhatsApp
+  setTimeout(()=>showShareBar(filename),600);
 }
 
 function exportCSV(){
@@ -2425,6 +2613,20 @@ function toast(msg){
   clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),2600);
 }
 
+let _sbTimer;
+function showShareBar(filename){
+  window._lastExcelFilename=filename;
+  const bar=document.getElementById('share-bar');
+  document.getElementById('sb-filename').textContent=filename;
+  bar.classList.add('show');
+  clearTimeout(_sbTimer);
+  _sbTimer=setTimeout(hideShareBar,12000);
+}
+function hideShareBar(){
+  document.getElementById('share-bar').classList.remove('show');
+  clearTimeout(_sbTimer);
+}
+
 /* ══════════════════════════════════════
    TEMAS
 ══════════════════════════════════════ */
@@ -2432,12 +2634,12 @@ function setTheme(t){
   document.documentElement.setAttribute('data-theme',t==='blue'?'':t);
   localStorage.setItem('app_theme',t);
   // Actualizar borde del botón activo
-  ['blue','dark','green'].forEach(n=>{
+  ['blue','dark','green','black'].forEach(n=>{
     const btn=document.getElementById('tbtn-'+n);
     if(btn)btn.style.border=n===t?'2px solid var(--text)':'2px solid transparent';
   });
   // Actualizar theme-color meta
-  const colors={blue:'#2563eb',dark:'#0f1117',green:'#16a34a'};
+  const colors={blue:'#2563eb',dark:'#0f1117',green:'#16a34a',black:'#000000'};
   document.querySelector('meta[name="theme-color"]').setAttribute('content',colors[t]||colors.blue);
 }
 function loadTheme(){
@@ -2505,6 +2707,7 @@ async function init(){
     extraCols=await cfgGet('extraCols',[]);
     dupCount=await cfgGet('dupCount',0);
     activeChofer=await cfgGet('activeChofer','');
+    selectedCamId=await cfgGet('selectedCamId',''); // restaurar cámara preferida
     guidSet=new Set(records.map(r=>r.guia));
     setDbPill('ok','💾 OK');
     if(records.length)toast('✓ '+records.length+' guías cargadas');
@@ -2521,74 +2724,27 @@ async function init(){
 
 window.addEventListener('DOMContentLoaded',init);
 window.addEventListener('beforeunload',()=>{if(dbOK)persistCfg();});
-</script>
 
-
-
-
-<!-- DIAGNÓSTICO CÁMARAS -->
-<div id="dp" style="display:none;position:fixed;bottom:0;left:0;right:0;background:#111;color:#0f0;font:11px monospace;padding:10px;z-index:9999;max-height:55vh;overflow-y:auto;white-space:pre-wrap;word-break:break-all;border-top:2px solid #0f0"></div>
-<button onclick="showDiag()" style="position:fixed;bottom:4px;right:4px;z-index:10000;background:#c00;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:14px;font-weight:bold">🔍 DIAG</button>
-<script>
-async function showDiag(){
-  const dp=document.getElementById('dp');
-  dp.style.display='block';
-  let t='═══ DIAGNÓSTICO CÁMARA ═══\n';
-  t+='URL: '+location.href+'\n';
-  t+='Protocolo: '+location.protocol+(location.protocol==='https:'?' ✅':' ❌ (necesita HTTPS)')+'\n';
-  t+='UA: '+navigator.userAgent.slice(0,90)+'\n';
-  t+='mediaDevices: '+(!!navigator.mediaDevices?'✅':'❌')+'\n';
-  t+='getUserMedia: '+(!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)?'✅':'❌')+'\n';
-  t+='Html5Qrcode: '+(typeof Html5Qrcode!=='undefined'?'✅':'❌')+'\n\n';
-
-  // Permisos
-  try{
-    if(navigator.permissions&&navigator.permissions.query){
-      const p=await navigator.permissions.query({name:'camera'});
-      t+='Permiso cámara: '+p.state+'\n\n';
+// Reanudar cámara si Android la apaga al pasar la app a background
+let camWasOnBeforeHide=false;
+document.addEventListener('visibilitychange',async()=>{
+  if(document.hidden){
+    camWasOnBeforeHide=camOn;
+    if(camOn)await stopCam();
+  } else {
+    if(camWasOnBeforeHide){
+      // Esperar 600ms para que Android libere el hardware
+      await new Promise(r=>setTimeout(r,600));
+      await startCam();
     }
-  }catch(e){t+='Permiso cámara: no consultable\n\n';}
-
-  // Intentar pedir cámara
-  try{
-    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false});
-    const tr=s.getVideoTracks()[0];
-    t+='✅ getUserMedia OK\n';
-    t+='   Track: '+(tr?tr.label:'?')+'\n';
-    const set=tr?tr.getSettings():{};
-    t+='   Settings: '+JSON.stringify(set)+'\n\n';
-    s.getTracks().forEach(x=>x.stop());
-  }catch(e){
-    t+='❌ getUserMedia FALLÓ\n';
-    t+='   name: '+e.name+'\n';
-    t+='   msg: '+e.message+'\n\n';
   }
-
-  // Listar cámaras
-  try{
-    const cams=await Html5Qrcode.getCameras();
-    t+='CÁMARAS DETECTADAS: '+cams.length+'\n';
-    for(let i=0;i<cams.length;i++){
-      t+='  ['+i+'] '+(cams[i].label||'(sin label)')+'\n';
-      t+='      id='+cams[i].id.slice(0,20)+'...\n';
-    }
-    t+='\nselectedCamId='+(selectedCamId||'(ninguno)')+'\nfacing='+facing+'\ncamOn='+camOn+'\n';
-  }catch(e){t+='❌ Html5Qrcode.getCameras() falló: '+e.message+'\n';}
-
-  dp.textContent=t;
-}
+});
 </script>
 
-<!-- DEBUG CONSOLE -->
-<button id="dbg-fab" onclick="toggleDebug()" title="Debug Console">🐛</button>
-<div id="dbg-panel">
-  <div id="dbg-header">
-    <span id="dbg-title">🐛 DEBUG CONSOLE</span>
-    <button id="dbg-clear" onclick="dbg._log=[];dbg._render()">LIMPIAR</button>
-    <button id="dbg-close" onclick="toggleDebug()">✕</button>
-  </div>
-  <div id="dbg-list"></div>
-</div>
+
+
+
+</script>
 
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"7f7b0fd8732c4326aae4b9d58d5c514a","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
