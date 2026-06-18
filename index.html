@@ -238,8 +238,8 @@ header{
 .db-pill.err{background:var(--danger-light);color:var(--danger);border:1.5px solid var(--danger)}
 .db-pill.saving{background:var(--warn-light);color:var(--warn);border:1.5px solid var(--warn)}
 .cnt-badge{
-  background:var(--accent);color:#fff;font-size:0.75rem;font-weight:700;
-  padding:5px 13px;border-radius:20px;min-width:68px;text-align:center;
+  background:var(--accent);color:#fff;font-size:0.72rem;font-weight:800;
+  padding:4px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;
 }
 
 /* ════════════════════════════════════════
@@ -809,6 +809,13 @@ header.cam-hidden{
   transform:translateY(-100%);
   opacity:0;
   pointer-events:none;
+}
+.tabs{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease;}
+.tabs.cam-hidden{
+  transform:translateY(-120%);
+  opacity:0;
+  pointer-events:none;
+  position:fixed;top:0;
 }
 /* Pequeño botón flotante para mostrar el header mientras cámara está ON */
 #hdr-show-btn{
@@ -3031,10 +3038,12 @@ function toggleThemePicker(){
 /* ── Header hide/show durante escaneo ── */
 function hideHeaderForScan(){
   document.querySelector('header').classList.add('cam-hidden');
+  document.querySelector('.tabs').classList.add('cam-hidden');
   document.getElementById('hdr-show-btn').classList.add('visible');
 }
 function restoreHeader(){
   document.querySelector('header').classList.remove('cam-hidden');
+  document.querySelector('.tabs').classList.remove('cam-hidden');
   document.getElementById('hdr-show-btn').classList.remove('visible');
 }
 let _hdrRevealTimer;
