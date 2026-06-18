@@ -150,6 +150,48 @@ if(typeof Html5Qrcode==='undefined'){
 [data-theme="black"] .chofer-hero { box-shadow: var(--hero-shadow); }
 [data-theme="black"] .manifest-big { box-shadow: var(--neon-glow); }
 
+/* ── TEMA WHITE NEON ── */
+[data-theme="white"] {
+  --bg: #f8f8f8;
+  --surface: #ffffff;
+  --surface2: #f0f0f0;
+  --surface3: #e8e8e8;
+  --accent: #cc00ff;
+  --accent-light: #f8e6ff;
+  --accent2: #ff6600;
+  --accent2-light: #fff0e6;
+  --success: #00bb55;
+  --success-light: #e6fff2;
+  --danger: #ff0044;
+  --danger-light: #ffe6ec;
+  --warn: #ff8800;
+  --warn-light: #fff4e6;
+  --text: #111111;
+  --text2: #555555;
+  --text3: #aaaaaa;
+  --border: #cc00ff44;
+  --border2: #cc00ff22;
+  --shadow: 0 0 12px rgba(204,0,255,.10), 0 2px 8px rgba(0,0,0,.06);
+  --shadow-lg: 0 0 32px rgba(204,0,255,.18), 0 8px 40px rgba(0,0,0,.10);
+  --hero-grad: linear-gradient(140deg,#cc00ff 0%,#8800cc 100%);
+  --hero-shadow: 0 0 32px rgba(204,0,255,.45);
+  --neon-glow-w: 0 0 8px rgba(204,0,255,.8), 0 0 24px rgba(204,0,255,.35);
+  --neon-glow-w2: 0 0 8px rgba(255,102,0,.8), 0 0 24px rgba(255,102,0,.35);
+}
+[data-theme="white"] .logo { text-shadow: var(--neon-glow-w); }
+[data-theme="white"] .logo span { text-shadow: var(--neon-glow-w2); }
+[data-theme="white"] .stat-n { text-shadow: var(--neon-glow-w); }
+[data-theme="white"] .cnt-badge { box-shadow: var(--neon-glow-w); }
+[data-theme="white"] .tab.active { text-shadow: 0 0 8px var(--accent); }
+[data-theme="white"] .btn-primary { box-shadow: var(--neon-glow-w); }
+[data-theme="white"] .btn-green { box-shadow: 0 0 8px rgba(0,187,85,.6), 0 0 24px rgba(0,187,85,.25); }
+[data-theme="white"] header { border-bottom-color: #cc00ff44; box-shadow: 0 0 20px rgba(204,0,255,.10); }
+[data-theme="white"] .card { border-color: #cc00ff22; }
+[data-theme="white"] .flash.ok { text-shadow: 0 0 8px rgba(0,187,85,.8); box-shadow: 0 0 12px rgba(0,187,85,.4); }
+[data-theme="white"] .db-pill.ok { box-shadow: 0 0 8px rgba(0,187,85,.5); }
+[data-theme="white"] .chofer-hero { box-shadow: var(--hero-shadow); }
+[data-theme="white"] .manifest-big { box-shadow: var(--neon-glow-w); }
+
 /* ════════════════════════════════════════
    BASE
 ════════════════════════════════════════ */
@@ -486,31 +528,61 @@ tr:hover td{background:var(--accent-light)}
 .empty-state{text-align:center;padding:52px 20px;color:var(--text2);font-size:0.95rem}
 
 /* ════════════════════════════════════════
-   WHATSAPP SHARE BAR
+   CIERRE DE TURNO / HISTORIAL
 ════════════════════════════════════════ */
-#share-bar{
-  display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);
-  background:var(--surface);border:1.5px solid #25d366;border-radius:20px;
-  padding:10px 16px;z-index:8000;box-shadow:0 4px 24px rgba(37,211,102,.25);
-  animation:none;white-space:nowrap;max-width:calc(100vw - 32px);
-  display:none;align-items:center;gap:10px;
+.close-shift-btn{
+  width:100%;padding:18px;border:none;border-radius:var(--r);
+  background:linear-gradient(135deg,var(--danger) 0%,#b91c1c 100%);
+  color:#fff;font-family:var(--font);font-size:1rem;font-weight:800;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;
+  letter-spacing:.2px;transition:all .15s;margin-bottom:14px;
+  box-shadow:0 4px 20px rgba(220,38,38,.35);
 }
-#share-bar.show{display:flex;animation:shareIn .3s cubic-bezier(.22,1,.36,1)}
-@keyframes shareIn{from{opacity:0;transform:translateX(-50%) translateY(30px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-#share-bar .sb-txt{font-size:0.78rem;font-weight:700;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
-#share-bar .sb-wa{
-  background:#25d366;color:#fff;border:none;border-radius:14px;
-  font-family:var(--font);font-size:0.78rem;font-weight:800;
-  padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:6px;
-  white-space:nowrap;transition:all .15s;flex-shrink:0;
+.close-shift-btn:active{transform:scale(.97);opacity:.92}
+.close-shift-ico{font-size:1.5rem;line-height:1}
+
+.session-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
+  padding:16px;margin-bottom:10px;box-shadow:var(--shadow);
+  display:flex;align-items:center;gap:14px;
 }
-#share-bar .sb-wa:active{transform:scale(.94)}
-#share-bar .sb-close{
-  background:none;border:none;cursor:pointer;color:var(--text2);
-  font-size:1.1rem;padding:4px 6px;border-radius:8px;flex-shrink:0;
-  transition:background .15s;
+.session-card-ico{font-size:1.8rem;line-height:1;flex-shrink:0}
+.session-card-info{flex:1;min-width:0}
+.session-card-date{font-size:0.95rem;font-weight:800;color:var(--text);letter-spacing:-.2px}
+.session-card-meta{font-size:0.7rem;color:var(--text2);margin-top:3px;font-weight:600}
+.session-card-count{
+  background:var(--accent-light);color:var(--accent);
+  font-size:0.75rem;font-weight:800;padding:5px 12px;border-radius:20px;flex-shrink:0;
 }
-#share-bar .sb-close:active{background:var(--surface2)}
+.session-card-actions{display:flex;gap:7px;margin-top:10px;flex-wrap:wrap}
+.session-card-actions .btn{flex:1;min-width:0;padding:9px 10px;font-size:0.72rem}
+
+/* Modal cierre de turno */
+.shift-modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(8,12,24,.80);
+  z-index:600;align-items:center;justify-content:center;
+  backdrop-filter:blur(10px);padding:20px;
+}
+.shift-modal-overlay.show{display:flex;animation:fdIn .22s ease}
+.shift-modal{
+  background:var(--surface);border-radius:var(--r);
+  padding:24px 20px 28px;width:100%;max-width:460px;
+  border:2px solid var(--danger);
+  box-shadow:0 0 40px rgba(220,38,38,.25);
+  animation:slideUp .25s cubic-bezier(.22,1,.36,1);
+}
+.shift-modal-title{font-size:1.15rem;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.3px}
+.shift-modal-sub{font-size:0.78rem;color:var(--text2);margin-bottom:18px;line-height:1.5}
+.shift-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.shift-sum-box{background:var(--surface2);border-radius:var(--r-sm);padding:14px 12px;text-align:center}
+.shift-sum-n{font-size:1.8rem;font-weight:800;color:var(--accent);font-family:var(--mono);line-height:1}
+.shift-sum-l{font-size:0.62rem;color:var(--text2);font-weight:700;letter-spacing:.8px;text-transform:uppercase;margin-top:4px}
+.shift-chofer-list{max-height:180px;overflow-y:auto;margin-bottom:16px}
+.shift-chofer-row{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:var(--surface2);border-radius:var(--r-sm);margin-bottom:6px}
+.shift-chofer-name{font-size:0.88rem;font-weight:700;color:var(--text)}
+.shift-chofer-cnt{font-size:0.75rem;font-weight:800;color:var(--accent);background:var(--accent-light);padding:3px 10px;border-radius:12px}
+.shift-modal-actions{display:flex;flex-direction:column;gap:8px}
+.shift-modal-actions .btn{width:100%;min-height:48px;font-size:0.88rem}
 
 /* ════════════════════════════════════════
    EXPORT
@@ -722,26 +794,68 @@ tr:hover td{background:var(--accent-light)}
 .dbg-warn .dbg-m{color:#fbbf24}
 .dbg-error .dbg-m{color:#f87171;font-weight:700}
 
+.theme-opt-btn{
+  display:flex;align-items:center;gap:8px;width:100%;padding:7px 10px;
+  border:none;background:none;color:var(--text);font-family:var(--font);
+  font-size:0.8rem;font-weight:700;cursor:pointer;border-radius:8px;
+  transition:background .15s;text-align:left;
+}
+.theme-opt-btn:hover,.theme-opt-btn:active{background:var(--surface2)}
+.theme-opt-btn.active{background:var(--accent-light);color:var(--accent)}
+
+/* ── Header auto-hide cuando cámara activa ── */
+header{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease;}
+header.cam-hidden{
+  transform:translateY(-100%);
+  opacity:0;
+  pointer-events:none;
+}
+/* Pequeño botón flotante para mostrar el header mientras cámara está ON */
+#hdr-show-btn{
+  display:none;position:fixed;top:0;left:50%;transform:translateX(-50%);
+  z-index:300;background:var(--accent);color:#fff;
+  border:none;border-radius:0 0 12px 12px;
+  padding:3px 18px 5px;font-size:0.65rem;font-weight:800;
+  letter-spacing:.5px;cursor:pointer;opacity:.85;
+  transition:opacity .2s;font-family:var(--font);
+}
+#hdr-show-btn.visible{display:block}
+#hdr-show-btn:active{opacity:1}
+
 </style>
-</head>
 <body>
 
 <div id="db-banner">⚠ Sin base de datos — Los datos NO se guardan al cerrar. ¡Exporta ahora!</div>
+<button id="hdr-show-btn" onclick="revealHeader()">▼ MENÚ</button>
 
 <header>
   <div class="logo">
     <span class="logo-ico">📦</span>Escanea<span>Guías</span>
   </div>
   <div class="hdr-right">
-    <div id="theme-btns" style="display:flex;gap:4px;margin-right:4px">
-      <button onclick="setTheme('blue')" id="tbtn-blue" title="Tema Azul"
-        style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#2563eb;cursor:pointer;padding:0;transition:all .2s"></button>
-      <button onclick="setTheme('dark')" id="tbtn-dark" title="Tema Oscuro"
-        style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#312e81;cursor:pointer;padding:0;transition:all .2s"></button>
-      <button onclick="setTheme('green')" id="tbtn-green" title="Tema Verde"
-        style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#16a34a;cursor:pointer;padding:0;transition:all .2s"></button>
-      <button onclick="setTheme('black')" id="tbtn-black" title="Tema Black Neon"
-        style="width:22px;height:22px;border-radius:50%;border:2px solid transparent;background:#000;cursor:pointer;padding:0;transition:all .2s;box-shadow:0 0 6px #00ff88,inset 0 0 6px rgba(0,255,136,.3)"></button>
+    <div style="position:relative;margin-right:4px" id="theme-picker-wrap">
+      <button id="theme-picker-btn" onclick="toggleThemePicker()" title="Cambiar tema"
+        style="width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s">🎨</button>
+      <div id="theme-picker-menu" style="display:none;position:absolute;top:36px;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:8px;box-shadow:var(--shadow-lg);z-index:500;white-space:nowrap">
+        <div style="font-size:0.6rem;font-weight:800;letter-spacing:1px;color:var(--text2);padding:2px 6px 6px;text-transform:uppercase">Tema</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <button onclick="setTheme('blue');toggleThemePicker()" class="theme-opt-btn" id="topt-blue">
+            <span style="width:14px;height:14px;border-radius:50%;background:#2563eb;flex-shrink:0;display:inline-block"></span> Azul
+          </button>
+          <button onclick="setTheme('dark');toggleThemePicker()" class="theme-opt-btn" id="topt-dark">
+            <span style="width:14px;height:14px;border-radius:50%;background:#312e81;flex-shrink:0;display:inline-block"></span> Oscuro
+          </button>
+          <button onclick="setTheme('green');toggleThemePicker()" class="theme-opt-btn" id="topt-green">
+            <span style="width:14px;height:14px;border-radius:50%;background:#16a34a;flex-shrink:0;display:inline-block"></span> Verde
+          </button>
+          <button onclick="setTheme('black');toggleThemePicker()" class="theme-opt-btn" id="topt-black">
+            <span style="width:14px;height:14px;border-radius:50%;background:#000;border:1px solid #00ff88;box-shadow:0 0 5px #00ff88;flex-shrink:0;display:inline-block"></span> Black Neon
+          </button>
+          <button onclick="setTheme('white');toggleThemePicker()" class="theme-opt-btn" id="topt-white">
+            <span style="width:14px;height:14px;border-radius:50%;background:#fff;border:1px solid #cc00ff;box-shadow:0 0 5px #cc00ff;flex-shrink:0;display:inline-block"></span> White Neon
+          </button>
+        </div>
+      </div>
     </div>
     <div class="hdr-chofer-chip" id="hdr-chofer-chip" onclick="openModal()" title="Chofer activo">
       <div class="chip-av" id="hdr-chip-av">?</div>
@@ -756,6 +870,7 @@ tr:hover td{background:var(--accent-light)}
   <div class="tab active" data-tab="scanner"><span class="tab-ico">📷</span>Scan</div>
   <div class="tab" data-tab="data" id="tab-data"><span class="tab-ico">📋</span>Lista<span class="tab-badge" id="tab-badge-hoy">0</span></div>
   <div class="tab" data-tab="export"><span class="tab-ico">💾</span>Export</div>
+  <div class="tab" data-tab="history"><span class="tab-ico">🗂</span>Historial</div>
   <div class="tab" data-tab="settings"><span class="tab-ico">⚙️</span>Config</div>
 </div>
 
@@ -868,6 +983,15 @@ tr:hover td{background:var(--accent-light)}
 
 <!-- ══════ EXPORT ══════ -->
 <div id="export-panel" class="panel">
+  <!-- CIERRE DE TURNO -->
+  <button class="close-shift-btn" onclick="openCloseShiftModal()">
+    <span class="close-shift-ico">🔒</span>
+    <div style="text-align:left">
+      <div>CERRAR TURNO</div>
+      <div style="font-size:0.68rem;font-weight:600;opacity:.85">Archivar sesión + resumen WhatsApp + Excel</div>
+    </div>
+    <span style="font-size:1.2rem;opacity:.7;margin-left:auto">›</span>
+  </button>
   <div class="abox abox-info">
     📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes listos para exportar
   </div>
@@ -886,11 +1010,57 @@ tr:hover td{background:var(--accent-light)}
     <div class="exp-card" onclick="openCopyChoferModal('copy')"><div class="exp-icon">📋</div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Elige el chofer</div></div>
     <div class="exp-card" onclick="openCopyChoferModal('txt')"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Elige el chofer</div></div>
     <div class="exp-card" onclick="exportHTML()"><div class="exp-icon">🌐</div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
+    <div class="exp-card" style="background:linear-gradient(135deg,#25d36615,#128c7e10);border-color:#25d36640" onclick="openGuiasWAModal()"><div class="exp-icon">💬</div><div class="exp-name">Guías WA</div><div class="exp-desc">Lista por chofer a WhatsApp</div></div>
     <div class="exp-card" style="grid-column:1/-1;background:linear-gradient(135deg,#7c3aed15,#4f46e510);border-color:#7c3aed40" onclick="generateDash()"><div class="exp-icon">📸</div><div class="exp-name">Generar DASH</div><div class="exp-desc">Imagen resumen para compartir</div></div>
   </div>
   <div class="card">
     <div class="card-title">📊 Resumen por Chofer</div>
     <div id="ch-summary"></div>
+  </div>
+</div>
+
+<!-- ══════ HISTORIAL ══════ -->
+<div id="history-panel" class="panel">
+  <div class="abox abox-info" id="hist-summary-box">
+    🗂 <strong id="hist-count">0</strong> sesiones archivadas
+  </div>
+  <div id="history-list">
+    <div style="text-align:center;padding:40px 20px;color:var(--text2)">
+      <div style="font-size:2.5rem;margin-bottom:10px">🗂</div>
+      <div style="font-size:0.9rem;font-weight:700">Sin sesiones archivadas</div>
+      <div style="font-size:0.72rem;margin-top:6px">Cierra tu primer turno desde la pestaña Export para ver el historial aquí.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ MODAL CIERRE DE TURNO ══════ -->
+<div class="shift-modal-overlay" id="shift-modal-overlay">
+  <div class="shift-modal">
+    <div class="shift-modal-title">🔒 Cerrar Turno</div>
+    <div class="shift-modal-sub">Se archivará la sesión actual y la app quedará limpia para el siguiente turno.</div>
+    <div class="shift-summary-grid">
+      <div class="shift-sum-box">
+        <div class="shift-sum-n" id="sm-total">0</div>
+        <div class="shift-sum-l">Guías</div>
+      </div>
+      <div class="shift-sum-box">
+        <div class="shift-sum-n" id="sm-chs">0</div>
+        <div class="shift-sum-l">Choferes</div>
+      </div>
+    </div>
+    <div class="shift-chofer-list" id="sm-ch-list"></div>
+    <div class="shift-modal-actions">
+      <button class="btn btn-primary" onclick="doCloseShift('excel')">
+        📊 Exportar Excel
+      </button>
+      <button class="btn btn-secondary" style="background:linear-gradient(135deg,#25d36622,#128c7e11);border-color:#25d36655" onclick="doCloseShift('wa')">
+        💬 Resumen por WhatsApp
+      </button>
+      <button class="btn btn-secondary" onclick="doCloseShift('silent')">
+        🗂 Solo archivar
+      </button>
+      <button class="btn btn-secondary" style="color:var(--text2)" onclick="closeShiftModal()">✕ CANCELAR</button>
+    </div>
   </div>
 </div>
 
@@ -1030,6 +1200,17 @@ tr:hover td{background:var(--accent-light)}
   </div>
 </div>
 
+<!-- ══════ MODAL GUIAS WA ══════ -->
+<div class="modal-bg" id="guiaswa-modal-bg">
+  <div class="modal" style="border-top-color:#25d366">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="color:#25d366">💬 Guias por WhatsApp</div>
+    <div class="label-sm" style="margin-bottom:8px">Selecciona el chofer a enviar:</div>
+    <div id="guiaswa-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px"></div>
+    <button class="btn btn-secondary" style="width:100%" onclick="document.getElementById('guiaswa-modal-bg').classList.remove('show')">✕ CANCELAR</button>
+  </div>
+</div>
+
 <!-- ══════ MODAL DASH PREVIEW ══════ -->
 <div class="modal-bg" id="dash-modal-bg">
   <div class="modal" style="border-top-color:#7c3aed;max-height:92vh">
@@ -1159,16 +1340,6 @@ tr:hover td{background:var(--accent-light)}
   </div>
 </div>
 
-<!-- WHATSAPP SHARE BAR -->
-<div id="share-bar">
-  <span class="sb-txt">📊 <span id="sb-filename">archivo.xlsx</span></span>
-  <button class="sb-wa" id="sb-btn" onclick="shareViaWhatsApp(window._lastExcelFilename)">
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-    Compartir
-  </button>
-  <button class="sb-close" onclick="hideShareBar()">✕</button>
-</div>
-
 <div id="toast"></div>
 
 <script>
@@ -1278,7 +1449,229 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
   if(t.dataset.tab==='data')renderTable();
   if(t.dataset.tab==='export')renderExport();
   if(t.dataset.tab==='settings')renderSettings();
+  if(t.dataset.tab==='history')renderHistory();
 }));
+
+/* ══════════════════════════════════════
+   SESIONES / HISTORIAL
+══════════════════════════════════════ */
+let sessions=[]; // array de objetos sesión archivada
+
+async function loadSessions(){
+  sessions=await cfgGet('sessions',[]);
+}
+async function saveSessions(){
+  await cfgSet('sessions',sessions);
+}
+
+function openCloseShiftModal(){
+  if(!records.length){toast('⚠ No hay guías escaneadas para cerrar turno');return;}
+  // Llenar resumen
+  const chMap={};
+  records.forEach(r=>{if(!chMap[r.chofer])chMap[r.chofer]=0;chMap[r.chofer]++;});
+  document.getElementById('sm-total').textContent=records.length;
+  document.getElementById('sm-chs').textContent=Object.keys(chMap).length;
+  const list=document.getElementById('sm-ch-list');
+  list.innerHTML=Object.entries(chMap)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([ch,n])=>`
+      <div class="shift-chofer-row">
+        <span class="shift-chofer-name">${esc(ch||'Sin asignar')}</span>
+        <span class="shift-chofer-cnt">${n} guías</span>
+      </div>`).join('');
+  document.getElementById('shift-modal-overlay').classList.add('show');
+}
+function closeShiftModal(){
+  document.getElementById('shift-modal-overlay').classList.remove('show');
+}
+document.getElementById('shift-modal-overlay').addEventListener('click',e=>{
+  if(e.target===document.getElementById('shift-modal-overlay'))closeShiftModal();
+});
+
+async function doCloseShift(mode){
+  closeShiftModal();
+  // Armar objeto sesión
+  const chMap={};
+  records.forEach(r=>{if(!chMap[r.chofer])chMap[r.chofer]=[];chMap[r.chofer].push(r.guia);});
+  const session={
+    id: Date.now(),
+    date: today(),
+    closedAt: nowStr(),
+    totalGuias: records.length,
+    choferes: chMap,
+    records: JSON.parse(JSON.stringify(records))
+  };
+  sessions.unshift(session);
+  if(sessions.length>60)sessions=sessions.slice(0,60); // máx 60 sesiones
+  await saveSessions();
+
+  if(mode==='excel'){
+    exportExcelFromRecords(session.records, session.date);
+  } else if(mode==='wa'){
+    sendShiftSummaryWA(session);
+  }
+
+  // Limpiar registros activos
+  await idbClear('records');
+  records=[];
+  guidSet=new Set();
+  activeChofer='';
+  await persistCfg();
+  updateStats();updateChoferBox();renderRecents();
+  toast('✅ Turno cerrado y archivado');
+  // Ir a historial
+  setTimeout(()=>{
+    document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));
+    document.querySelector('[data-tab="history"]').classList.add('active');
+    document.getElementById('history-panel').classList.add('active');
+    renderHistory();
+  },300);
+}
+
+function sendShiftSummaryWA(session){
+  const lines=Object.entries(session.choferes)
+    .sort((a,b)=>b[1].length-a[1].length)
+    .map(([ch,gs])=>`- ${ch}: *${gs.length}* guias`).join('\n');
+  const msg=encodeURIComponent(
+    `*Cierre de Turno - ${session.date}*\n`+
+    `Hora: ${session.closedAt}\n\n`+
+    `${lines}\n\n`+
+    `*TOTAL: ${session.totalGuias} guias*`
+  );
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+
+function exportExcelFromRecords(recs, dateStr){
+  if(!recs||!recs.length){toast('Sin datos');return;}
+  const wb=XLSX.utils.book_new();
+  const chMap={};
+  recs.forEach(r=>{if(!chMap[r.chofer||'Sin asignar'])chMap[r.chofer||'Sin asignar']=[];chMap[r.chofer||'Sin asignar'].push(r.guia);});
+  const sumData=[['CHOFER','TOTAL GUIAS'],...Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,gs])=>[ch,gs.length])];
+  const wsSum=XLSX.utils.aoa_to_sheet(sumData);wsSum['!cols']=[{wch:28},{wch:14}];
+  XLSX.utils.book_append_sheet(wb,wsSum,'Resumen');
+  const hdr=['GUIA','CHOFER','FECHA','HORA'];
+  const ws2=XLSX.utils.aoa_to_sheet([hdr,...recs.map(r=>[r.guia,r.chofer||'',r.fecha||'',r.hora||''])]);
+  ws2['!cols']=hdr.map(()=>({wch:24}));
+  XLSX.utils.book_append_sheet(wb,ws2,'Detalle');
+  Object.entries(chMap).forEach(([ch,guias])=>{
+    const data=[['N','GUIA'],...guias.map((g,i)=>[i+1,g])];
+    const ws=XLSX.utils.aoa_to_sheet(data);ws['!cols']=[{wch:5},{wch:24}];
+    XLSX.utils.book_append_sheet(wb,ws,ch.substring(0,31));
+  });
+  const filename=`guias_${(dateStr||today()).replace(/\//g,'-')}.xlsx`;
+  const wbout=XLSX.write(wb,{bookType:'xlsx',type:'array'});
+  const blob=new Blob([wbout],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=filename;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  toast('Excel descargado: '+filename);
+}
+
+function renderHistory(){
+  loadSessions().then(()=>{
+    const list=document.getElementById('history-list');
+    document.getElementById('hist-count').textContent=sessions.length;
+    if(!sessions.length){
+      list.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text2)">
+        <div style="font-size:2.5rem;margin-bottom:10px">🗂</div>
+        <div style="font-size:0.9rem;font-weight:700">Sin sesiones archivadas</div>
+        <div style="font-size:0.72rem;margin-top:6px">Cierra tu primer turno desde Export → Cerrar Turno.</div>
+      </div>`;
+      return;
+    }
+    list.innerHTML=sessions.map((s,i)=>{
+      const chLines=Object.entries(s.choferes)
+        .sort((a,b)=>b[1].length-a[1].length)
+        .map(([ch,gs])=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--surface3);border-radius:8px;padding:2px 8px;font-size:0.68rem;font-weight:700;margin:2px">${esc(ch)} <strong style="color:var(--accent)">${gs.length}</strong></span>`)
+        .join('');
+      return `<div class="session-card">
+        <div class="session-card-ico">📦</div>
+        <div style="flex:1;min-width:0">
+          <div class="session-card-date">${esc(s.date)}</div>
+          <div class="session-card-meta">Cerrado: ${esc(s.closedAt)}</div>
+          <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:2px">${chLines}</div>
+          <div class="session-card-actions">
+            <button class="btn btn-secondary" onclick="sessionExcel(${i})">📊 Excel</button>
+            <button class="btn btn-secondary" onclick="sessionSummaryWA(${i})">💬 Resumen WA</button>
+            <button class="btn btn-secondary" onclick="sessionGuiasWA(${i})">📋 Guías WA</button>
+            <button class="btn btn-red" onclick="deleteSession(${i})">🗑</button>
+          </div>
+        </div>
+        <div class="session-card-count">${s.totalGuias} guías</div>
+      </div>`;
+    }).join('');
+  });
+}
+
+function sessionExcel(idx){
+  const s=sessions[idx];
+  if(!s)return;
+  exportExcelFromRecords(s.records,s.date);
+}
+function sessionSummaryWA(idx){
+  const s=sessions[idx];
+  if(!s)return;
+  sendShiftSummaryWA(s);
+}
+function sessionGuiasWA(idx){
+  const s=sessions[idx];
+  if(!s)return;
+  // Si hay más de un chofer, preguntar cuál; si solo uno, enviar directo
+  const chs=Object.keys(s.choferes);
+  if(chs.length===1){
+    sendGuiasWA(chs[0], s.choferes[chs[0]], s.date);
+    return;
+  }
+  // Mostrar picker
+  const list=document.getElementById('guiaswa-list');
+  list.innerHTML=chs.sort((a,b)=>s.choferes[b].length-s.choferes[a].length).map(ch=>`
+    <button class="btn btn-secondary" style="justify-content:space-between;display:flex"
+      onclick="sendGuiasWA('${escA(ch)}',sessions[${idx}].choferes['${escA(ch)}'],sessions[${idx}].date);document.getElementById('guiaswa-modal-bg').classList.remove('show')">
+      <span>${esc(ch)}</span>
+      <span style="font-weight:800;color:var(--accent)">${s.choferes[ch].length} guias</span>
+    </button>`).join('');
+  document.getElementById('guiaswa-modal-bg').classList.add('show');
+}
+
+function openGuiasWAModal(){
+  if(!records.length){toast('No hay guias escaneadas');return;}
+  const chMap={};
+  records.forEach(r=>{
+    const ch=r.chofer||'Sin asignar';
+    if(!chMap[ch])chMap[ch]=[];
+    chMap[ch].push(r.guia);
+  });
+  const chs=Object.keys(chMap);
+  if(chs.length===1){
+    sendGuiasWA(chs[0], chMap[chs[0]], today());
+    return;
+  }
+  const list=document.getElementById('guiaswa-list');
+  list.innerHTML=chs.sort((a,b)=>chMap[b].length-chMap[a].length).map(ch=>`
+    <button class="btn btn-secondary" style="justify-content:space-between;display:flex"
+      onclick="sendGuiasWA('${escA(ch)}',records.filter(r=>(r.chofer||'Sin asignar')==='${escA(ch)}').map(r=>r.guia),'${today()}');document.getElementById('guiaswa-modal-bg').classList.remove('show')">
+      <span>${esc(ch)}</span>
+      <span style="font-weight:800;color:var(--accent)">${chMap[ch].length} guias</span>
+    </button>`).join('');
+  document.getElementById('guiaswa-modal-bg').classList.add('show');
+}
+
+function sendGuiasWA(chofer, guias, fecha){
+  const lista=guias.map((g,i)=>`${i+1}. ${g}`).join('\n');
+  const msg=encodeURIComponent(
+    `*${chofer} - ${fecha}*\n`+
+    `${guias.length} guias\n\n`+
+    `${lista}`
+  );
+  window.open(`https://wa.me/?text=${msg}`,'_blank');
+}
+async function deleteSession(idx){
+  if(!confirm(`¿Eliminar sesión del ${sessions[idx]?.date}?\nEsta acción no se puede deshacer.`))return;
+  sessions.splice(idx,1);
+  await saveSessions();
+  renderHistory();
+  toast('🗑 Sesión eliminada');
+}
 
 /* ══════════════════════════════════════
    MODAL CHOFER
@@ -1638,6 +2031,8 @@ async function startCam(){
     const badge=document.getElementById('cam-badge');
     badge.textContent='🟢 EN VIVO · '+(facing==='environment'?'Cámara trasera':'Cámara frontal');
     badge.className='cam-badge live';
+    // Ocultar header para maximizar área de escaneo
+    setTimeout(hideHeaderForScan, 1200);
   }catch(e){
     toast('Error cámara: '+(e&&e.message||e));
     console.error('[startCam] excepción no controlada',e);
@@ -1657,6 +2052,9 @@ async function stopCam(){
   const badge=document.getElementById('cam-badge');
   badge.textContent='📵 Cámara apagada';
   badge.className='cam-badge';
+  // Restaurar header
+  clearTimeout(_hdrRevealTimer);
+  restoreHeader();
 }
 
 async function switchCam(){
@@ -1982,26 +2380,6 @@ function buildExcelChoferColumns(){
   return{matrix,chMap,chNames};
 }
 
-async function shareViaWhatsApp(filename){
-  // Intentar Web Share API primero (funciona en Android Chrome/Safari iOS)
-  const blob=window._lastExcelBlob;
-  if(blob && navigator.canShare && navigator.canShare({files:[new File([blob],filename,{type:blob.type})]})){
-    try{
-      await navigator.share({
-        title:'Reporte de Guías',
-        text:`📦 Reporte: ${filename}`,
-        files:[new File([blob],filename,{type:blob.type})]
-      });
-      return;
-    }catch(e){
-      if(e.name==='AbortError')return; // usuario canceló
-    }
-  }
-  // Fallback: abrir WhatsApp con mensaje de texto
-  const msg=encodeURIComponent(`📦 Reporte de guías exportado: *${filename}*\nDescargado el ${nowStr()}`);
-  window.open(`https://wa.me/?text=${msg}`,'_blank');
-}
-
 function exportExcel(){
   if(!records.length){toast('No hay datos');return;}
   const wb=XLSX.utils.book_new();
@@ -2031,10 +2409,8 @@ function exportExcel(){
   const url=URL.createObjectURL(window._lastExcelBlob);
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
-  toast('Excel descargado ✓');
+  toast('Excel descargado: '+filename);
   confirmExpCard(document.querySelector('[onclick="exportExcel()"]'));
-  // Mostrar botón de compartir por WhatsApp
-  setTimeout(()=>showShareBar(filename),600);
 }
 
 function exportCSV(){
@@ -2613,34 +2989,62 @@ function toast(msg){
   clearTimeout(tT);tT=setTimeout(()=>el.classList.remove('show'),2600);
 }
 
-let _sbTimer;
-function showShareBar(filename){
-  window._lastExcelFilename=filename;
-  const bar=document.getElementById('share-bar');
-  document.getElementById('sb-filename').textContent=filename;
-  bar.classList.add('show');
-  clearTimeout(_sbTimer);
-  _sbTimer=setTimeout(hideShareBar,12000);
-}
-function hideShareBar(){
-  document.getElementById('share-bar').classList.remove('show');
-  clearTimeout(_sbTimer);
-}
-
 /* ══════════════════════════════════════
    TEMAS
 ══════════════════════════════════════ */
 function setTheme(t){
   document.documentElement.setAttribute('data-theme',t==='blue'?'':t);
   localStorage.setItem('app_theme',t);
-  // Actualizar borde del botón activo
-  ['blue','dark','green','black'].forEach(n=>{
-    const btn=document.getElementById('tbtn-'+n);
-    if(btn)btn.style.border=n===t?'2px solid var(--text)':'2px solid transparent';
+  // Marcar opción activa en el menú
+  ['blue','dark','green','black','white'].forEach(n=>{
+    const btn=document.getElementById('topt-'+n);
+    if(btn)btn.classList.toggle('active',n===t);
   });
+  // Actualizar ícono del botón con color del tema activo
+  const colors={blue:'#2563eb',dark:'#312e81',green:'#16a34a',black:'#000',white:'#ffffff'};
+  const pb=document.getElementById('theme-picker-btn');
+  if(pb)pb.style.borderColor=colors[t]||colors.blue;
   // Actualizar theme-color meta
-  const colors={blue:'#2563eb',dark:'#0f1117',green:'#16a34a',black:'#000000'};
-  document.querySelector('meta[name="theme-color"]').setAttribute('content',colors[t]||colors.blue);
+  const mcolors={blue:'#2563eb',dark:'#0f1117',green:'#16a34a',black:'#000000',white:'#ffffff'};
+  document.querySelector('meta[name="theme-color"]').setAttribute('content',mcolors[t]||mcolors.blue);
+}
+
+function toggleThemePicker(){
+  const menu=document.getElementById('theme-picker-menu');
+  if(!menu)return;
+  const open=menu.style.display==='block';
+  menu.style.display=open?'none':'block';
+  if(!open){
+    // Cerrar al click fuera
+    setTimeout(()=>{
+      const close=e=>{
+        if(!document.getElementById('theme-picker-wrap')?.contains(e.target)){
+          menu.style.display='none';
+          document.removeEventListener('click',close);
+        }
+      };
+      document.addEventListener('click',close);
+    },10);
+  }
+}
+
+/* ── Header hide/show durante escaneo ── */
+function hideHeaderForScan(){
+  document.querySelector('header').classList.add('cam-hidden');
+  document.getElementById('hdr-show-btn').classList.add('visible');
+}
+function restoreHeader(){
+  document.querySelector('header').classList.remove('cam-hidden');
+  document.getElementById('hdr-show-btn').classList.remove('visible');
+}
+let _hdrRevealTimer;
+function revealHeader(){
+  // Muestra el header temporalmente sin parar la cámara
+  restoreHeader();
+  clearTimeout(_hdrRevealTimer);
+  if(camOn){
+    _hdrRevealTimer=setTimeout(hideHeaderForScan,4000);
+  }
 }
 function loadTheme(){
   const t=localStorage.getItem('app_theme')||'blue';
@@ -2707,8 +3111,9 @@ async function init(){
     extraCols=await cfgGet('extraCols',[]);
     dupCount=await cfgGet('dupCount',0);
     activeChofer=await cfgGet('activeChofer','');
-    selectedCamId=await cfgGet('selectedCamId',''); // restaurar cámara preferida
+    selectedCamId=await cfgGet('selectedCamId','');
     guidSet=new Set(records.map(r=>r.guia));
+    await loadSessions();
     setDbPill('ok','💾 OK');
     if(records.length)toast('✓ '+records.length+' guías cargadas');
     else toast('✓ App lista — selecciona un chofer');
@@ -2718,8 +3123,6 @@ async function init(){
     toast('⚠ DB no disponible: '+e.message);
   }
   updateStats();updateChoferBox();renderRecents();
-
-  // html5-qrcode maneja la cámara internamente — no se necesita detectar al inicio
 }
 
 window.addEventListener('DOMContentLoaded',init);
