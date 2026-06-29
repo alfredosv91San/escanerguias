@@ -220,6 +220,7 @@ header{
 }
 .logo span{color:var(--accent2)}
 .logo-ico{font-size:1.3rem;line-height:1}
+.logo .eico .si{color:var(--accent)}
 .hdr-right{display:flex;align-items:center;gap:8px}
 
 /* Tema picker */
@@ -539,7 +540,8 @@ tr:hover td{background:var(--accent-light)}
   box-shadow:0 4px 20px rgba(220,38,38,.35);
 }
 .close-shift-btn:active{transform:scale(.97);opacity:.92}
-.close-shift-ico{font-size:1.5rem;line-height:1}
+.close-shift-ico{font-size:1.5rem;line-height:1;display:flex;align-items:center}
+[data-icons] .close-shift-ico .si svg{width:28px;height:28px}
 
 .session-card{
   background:var(--surface);border:1px solid var(--border);border-radius:var(--r);
@@ -594,7 +596,9 @@ tr:hover td{background:var(--accent-light)}
   transition:all .15s;box-shadow:var(--shadow);
 }
 .exp-card:active{border-color:var(--accent);background:var(--accent-light);transform:scale(.95)}
-.exp-icon{font-size:2.1rem;margin-bottom:8px;line-height:1}
+.exp-icon{font-size:2.1rem;margin-bottom:8px;line-height:1;display:flex;justify-content:center}
+[data-icons] .exp-icon .ei{font-size:2.1rem}
+[data-icons] .exp-icon .si svg{width:34px;height:34px}
 .exp-name{font-size:0.85rem;font-weight:800;color:var(--text)}
 .exp-desc{font-size:0.67rem;color:var(--text2);margin-top:4px}
 .manifest-big{
@@ -605,7 +609,8 @@ tr:hover td{background:var(--accent-light)}
   border:none;width:100%;font-family:var(--font);text-align:left;
 }
 .manifest-big:active{transform:scale(.97);opacity:.92}
-.manifest-big-icon{font-size:2.3rem;flex-shrink:0;line-height:1}
+.manifest-big-icon{font-size:2.3rem;flex-shrink:0;line-height:1;display:flex;align-items:center}
+[data-icons] .manifest-big-icon .si svg{width:38px;height:38px}
 .manifest-big-text{flex:1}
 .manifest-big-title{font-size:1.08rem;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
 .manifest-big-sub{font-size:0.78rem;opacity:.88}
@@ -803,6 +808,49 @@ tr:hover td{background:var(--accent-light)}
 .theme-opt-btn:hover,.theme-opt-btn:active{background:var(--surface2)}
 .theme-opt-btn.active{background:var(--accent-light);color:var(--accent)}
 
+/* ═══════════════════════════════════════
+   ICON THEME SYSTEM
+═══════════════════════════════════════ */
+/* Every .eico span has two children: .ei (emoji) and .si (svg) */
+.eico .ei { display:inline-flex;align-items:center }
+.eico .si { display:none;align-items:center;color:inherit }
+/* Lucide mode: show SVG outline */
+[data-icons="lucide"] .eico .ei { display:none }
+[data-icons="lucide"] .eico .si { display:inline-flex }
+/* iOS mode: show SVG with heavier stroke */
+[data-icons="ios"] .eico .ei { display:none }
+[data-icons="ios"] .eico .si { display:inline-flex }
+[data-icons="ios"] .eico .si svg { stroke-width:2.8 }
+
+/* Icon theme selector row in picker menu */
+.icon-theme-sep{border-top:1px solid var(--border2);margin:6px 0 4px}
+.icon-theme-row{display:flex;gap:4px;padding:0 2px 2px}
+.ithm-btn{
+  flex:1;border:1.5px solid var(--border2);border-radius:8px;
+  background:var(--surface2);color:var(--text2);font-family:var(--font);
+  font-size:0.65rem;font-weight:800;padding:6px 3px 5px;cursor:pointer;
+  letter-spacing:.2px;transition:all .15s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  line-height:1;
+}
+.ithm-btn:hover{background:var(--surface3)}
+.ithm-btn.active{background:var(--accent-light);color:var(--accent);border-color:var(--accent)}
+.ithm-btn svg{width:13px;height:13px}
+.ithm-btn .ithm-em{font-size:0.85rem;line-height:1}
+
+/* Theme picker button — use CSS vars so it's visible in all themes */
+#theme-picker-btn{
+  color:var(--text2) !important;
+  background:var(--surface2) !important;
+  border-color:var(--border) !important;
+}
+#theme-picker-btn:hover{ background:var(--surface3) !important; color:var(--text) !important; }
+
+/* Tab icons */
+.tab-ico{ line-height:1 }
+.tab .eico{ font-size:1.35rem }
+.tab .eico .si svg{ width:22px;height:22px }
+
 /* ── Header auto-hide cuando cámara activa ── */
 header{transition:transform .3s cubic-bezier(.4,0,.2,1),opacity .3s ease;}
 header.cam-hidden{
@@ -837,12 +885,12 @@ header.cam-hidden{
 
 <header>
   <div class="logo">
-    <span class="logo-ico">📦</span>Escanea<span>Guías</span>
+    <span class="eico"><span class="ei">📦</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span></span>Escanea<span>Guías</span>
   </div>
   <div class="hdr-right">
     <div style="position:relative;margin-right:4px" id="theme-picker-wrap">
       <button id="theme-picker-btn" onclick="toggleThemePicker()" title="Cambiar tema"
-        style="width:30px;height:30px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface2);cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .2s">🎨</button>
+        style="width:30px;height:30px;border-radius:8px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;transition:all .2s"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg></button>
       <div id="theme-picker-menu" style="display:none;position:absolute;top:36px;right:0;background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:8px;box-shadow:var(--shadow-lg);z-index:500;white-space:nowrap">
         <div style="font-size:0.6rem;font-weight:800;letter-spacing:1px;color:var(--text2);padding:2px 6px 6px;text-transform:uppercase">Tema</div>
         <div style="display:flex;flex-direction:column;gap:4px">
@@ -862,30 +910,45 @@ header.cam-hidden{
             <span style="width:14px;height:14px;border-radius:50%;background:#fff;border:1px solid #cc00ff;box-shadow:0 0 5px #cc00ff;flex-shrink:0;display:inline-block"></span> White Neon
           </button>
         </div>
+        <div class="icon-theme-sep"></div>
+        <div style="font-size:0.6rem;font-weight:800;letter-spacing:1px;color:var(--text2);padding:2px 6px 4px;text-transform:uppercase">Iconos</div>
+        <div class="icon-theme-row">
+          <button class="ithm-btn active" id="iopt-emoji" onclick="setIconTheme('emoji')">
+            <span class="ithm-em">😀</span>Emoji
+          </button>
+          <button class="ithm-btn" id="iopt-lucide" onclick="setIconTheme('lucide')">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+            Lucide
+          </button>
+          <button class="ithm-btn" id="iopt-ios" onclick="setIconTheme('ios')">
+            <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            iOS SF
+          </button>
+        </div>
       </div>
     </div>
     <div class="hdr-chofer-chip" id="hdr-chofer-chip" onclick="openModal()" title="Chofer activo">
       <div class="chip-av" id="hdr-chip-av">?</div>
       <span class="chip-nm" id="hdr-chip-nm">—</span>
     </div>
-    <div class="db-pill ok" id="db-pill">💾 OK</div>
+    <div class="db-pill ok" id="db-pill"><span class="eico"><span class="ei">💾</span><span class="si"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span></span> OK</div>
     <div class="cnt-badge" id="hdr-cnt">0 guías</div>
   </div>
 </header>
 
 <div class="tabs">
-  <div class="tab active" data-tab="scanner"><span class="tab-ico">📷</span>Scan</div>
-  <div class="tab" data-tab="data" id="tab-data"><span class="tab-ico">📋</span>Lista<span class="tab-badge" id="tab-badge-hoy">0</span></div>
-  <div class="tab" data-tab="export"><span class="tab-ico">💾</span>Export</div>
-  <div class="tab" data-tab="history"><span class="tab-ico">🗂</span>Historial</div>
-  <div class="tab" data-tab="settings"><span class="tab-ico">⚙️</span>Config</div>
+  <div class="tab active" data-tab="scanner"><span class="eico"><span class="ei">📷</span><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><line x1="7" y1="12" x2="17" y2="12"/></svg></span></span>Scan</div>
+  <div class="tab" data-tab="data" id="tab-data"><span class="eico"><span class="ei">📋</span><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg></span></span>Lista<span class="tab-badge" id="tab-badge-hoy">0</span></div>
+  <div class="tab" data-tab="export"><span class="eico"><span class="ei">💾</span><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></span></span>Export</div>
+  <div class="tab" data-tab="history"><span class="eico"><span class="ei">🗂</span><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span></span>Historial</div>
+  <div class="tab" data-tab="settings"><span class="eico"><span class="ei">⚙️</span><span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span></span>Config</div>
 </div>
 
 <!-- ══════ SCANNER ══════ -->
 <div id="scanner-panel" class="panel active">
 
   <div class="chofer-hero" id="chofer-hero">
-    <div class="chofer-hero-label">👤 Chofer activo</div>
+    <div class="chofer-hero-label"><span class="eico"><span class="ei">👤</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span> Chofer activo</div>
     <div id="box-empty">
       <div class="chofer-hero-empty">⚠ Selecciona un chofer para empezar</div>
       <button class="btn btn-secondary" onclick="openModal()"
@@ -906,7 +969,7 @@ header.cam-hidden{
   <!-- Modo iMile + Zona -->
   <div style="display:flex;gap:8px;margin-bottom:8px;align-items:stretch">
     <div id="imile-badge" onclick="toggleImileMode()" style="flex:1;background:var(--surface);border:2px solid var(--border);border-radius:var(--r-sm);padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .2s">
-      <div style="font-size:1.3rem">📦</div>
+      <div style="font-size:1.3rem"><span class="eico"><span class="ei">📦</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span></span></div>
       <div style="flex:1">
         <div style="font-size:0.7rem;font-weight:800;letter-spacing:.5px" id="imile-label">MODO iMile</div>
         <div style="font-size:0.6rem;color:var(--text2)" id="imile-sub">Validación OFF</div>
@@ -934,7 +997,7 @@ header.cam-hidden{
   <div class="cam-wrap">
     <div id="reader" style="width:100%;min-height:240px;border-radius:inherit;overflow:hidden"></div>
     <canvas id="reader-canvas" style="display:none"></canvas>
-    <div class="cam-badge" id="cam-badge">📵 Cámara apagada</div>
+    <div class="cam-badge" id="cam-badge"><span class="eico"><span class="ei">📵</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M21 21H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3m3-3h6l2 3h4a2 2 0 0 1 2 2v9.34"/></svg></span></span> Cámara apagada</div>
     <div id="last4-overlay" style="display:none;position:absolute;bottom:10px;left:0;right:0;text-align:center;pointer-events:none;z-index:10">
       <div style="display:inline-block;background:rgba(0,0,0,.72);border-radius:10px;padding:6px 18px">
         <div style="font-size:0.55rem;font-weight:700;color:rgba(255,255,255,.7);letter-spacing:2px">ÚLTIMOS 4</div>
@@ -947,9 +1010,9 @@ header.cam-hidden{
     <span class="btn-main-ico">▶</span> INICIAR CÁMARA
   </button>
   <div class="cam-controls-aux">
-    <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔄</button>
-    <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔦</button>
-    <button class="btn btn-secondary" id="btn-cam-search" onclick="startCamSearch()" title="Buscar por cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0">🔎</button>
+    <button class="btn btn-secondary" onclick="switchCam()" title="Voltear cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0"><span class="eico"><span class="ei">🔄</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span></span></button>
+    <button class="btn btn-secondary" id="btn-torch" onclick="toggleTorch()" style="flex:0 0 52px;font-size:1.3rem;padding:0"><span class="eico"><span class="ei">🔦</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6c0 2-2 2-2 4v10a2 2 0 0 1-4 0V10c0-2-2-2-2-4a4 4 0 0 1 8 0z"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="18" y1="6" x2="18.01" y2="6"/><line x1="12" y1="2" x2="12" y2="2"/></svg></span></span></button>
+    <button class="btn btn-secondary" id="btn-cam-search" onclick="startCamSearch()" title="Buscar por cámara" style="flex:0 0 52px;font-size:1.3rem;padding:0"><span class="eico"><span class="ei">🔎</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span></button>
   </div>
 
   <div class="flash" id="flash"></div>
@@ -979,7 +1042,7 @@ header.cam-hidden{
 <div id="data-panel" class="panel">
   <div class="data-controls">
     <input class="input-text" id="search-in" type="text" placeholder="🔍 Buscar guía, chofer..." oninput="renderTable()">
-    <button class="btn btn-red" style="flex:0 0 auto;padding:11px 14px;font-size:1rem" onclick="clearAll(false)">🗑</button>
+    <button class="btn btn-red" style="flex:0 0 auto;padding:11px 14px;font-size:1rem" onclick="clearAll(false)"><span class="eico"><span class="ei">🗑</span><span class="si"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg></span></span></button>
   </div>
   <div class="ch-filter" id="ch-filter"></div>
   <div id="tbl-skeleton" style="display:none"><div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div><div class="skel-row"></div></div>
@@ -992,7 +1055,7 @@ header.cam-hidden{
 <div id="export-panel" class="panel">
   <!-- CIERRE DE TURNO -->
   <button class="close-shift-btn" onclick="openCloseShiftModal()">
-    <span class="close-shift-ico">🔒</span>
+    <span class="close-shift-ico"><span class="eico"><span class="ei">🔒</span><span class="si"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></span></span>
     <div style="text-align:left">
       <div>CERRAR TURNO</div>
       <div style="font-size:0.68rem;font-weight:600;opacity:.85">Archivar sesión + resumen WhatsApp + Excel</div>
@@ -1000,10 +1063,10 @@ header.cam-hidden{
     <span style="font-size:1.2rem;opacity:.7;margin-left:auto">›</span>
   </button>
   <div class="abox abox-info">
-    📦 <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes listos para exportar
+    <span class="eico"><span class="ei">📦</span><span class="si"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></span></span> <strong id="exp-cnt">0</strong> registros · <strong id="exp-chs">0</strong> choferes listos para exportar
   </div>
   <button class="manifest-big" onclick="openManifiestoModal()">
-    <div class="manifest-big-icon">🖨️</div>
+    <div class="manifest-big-icon"><span class="eico"><span class="ei">🖨️</span><span class="si"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></span></span></div>
     <div class="manifest-big-text">
       <div class="manifest-big-title">Imprimir Manifiesto</div>
       <div class="manifest-big-sub">Manifiesto con guías, totales y firma del chofer</div>
@@ -1011,17 +1074,17 @@ header.cam-hidden{
     <span style="font-size:1.4rem;opacity:.8">›</span>
   </button>
   <div class="exp-grid">
-    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon">📊</div><div class="exp-name">Excel</div><div class="exp-desc">Formato por chofer</div></div>
-    <div class="exp-card" onclick="exportCSV()"><div class="exp-icon">📄</div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
-    <div class="exp-card" onclick="exportJSON()"><div class="exp-icon">💾</div><div class="exp-name">Backup JSON</div><div class="exp-desc">Respaldo completo</div></div>
-    <div class="exp-card" onclick="openCopyChoferModal('copy')"><div class="exp-icon">📋</div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Elige el chofer</div></div>
-    <div class="exp-card" onclick="openCopyChoferModal('txt')"><div class="exp-icon">📝</div><div class="exp-name">TXT</div><div class="exp-desc">Elige el chofer</div></div>
-    <div class="exp-card" onclick="exportHTML()"><div class="exp-icon">🌐</div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
-    <div class="exp-card" style="background:linear-gradient(135deg,#25d36615,#128c7e10);border-color:#25d36640" onclick="openGuiasWAModal()"><div class="exp-icon">💬</div><div class="exp-name">Guías WA</div><div class="exp-desc">Lista por chofer a WhatsApp</div></div>
-    <div class="exp-card" style="grid-column:1/-1;background:linear-gradient(135deg,#7c3aed15,#4f46e510);border-color:#7c3aed40" onclick="generateDash()"><div class="exp-icon">📸</div><div class="exp-name">Generar DASH</div><div class="exp-desc">Imagen resumen para compartir</div></div>
+    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon"><span class="eico"><span class="ei">📊</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg></span></span></div><div class="exp-name">Excel</div><div class="exp-desc">Formato por chofer</div></div>
+    <div class="exp-card" onclick="exportCSV()"><div class="exp-icon"><span class="eico"><span class="ei">📄</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span></span></div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
+    <div class="exp-card" onclick="exportJSON()"><div class="exp-icon"><span class="eico"><span class="ei">💾</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg></span></span></div><div class="exp-name">Backup JSON</div><div class="exp-desc">Respaldo completo</div></div>
+    <div class="exp-card" onclick="openCopyChoferModal('copy')"><div class="exp-icon"><span class="eico"><span class="ei">📋</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></span></div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Elige el chofer</div></div>
+    <div class="exp-card" onclick="openCopyChoferModal('txt')"><div class="exp-icon"><span class="eico"><span class="ei">📝</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span></span></div><div class="exp-name">TXT</div><div class="exp-desc">Elige el chofer</div></div>
+    <div class="exp-card" onclick="exportHTML()"><div class="exp-icon"><span class="eico"><span class="ei">🌐</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg></span></span></div><div class="exp-name">HTML</div><div class="exp-desc">Reporte imprimible</div></div>
+    <div class="exp-card" style="background:linear-gradient(135deg,#25d36615,#128c7e10);border-color:#25d36640" onclick="openGuiasWAModal()"><div class="exp-icon"><span class="eico"><span class="ei">💬</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#25d366" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></span></div><div class="exp-name">Guías WA</div><div class="exp-desc">Lista por chofer a WhatsApp</div></div>
+    <div class="exp-card" style="grid-column:1/-1;background:linear-gradient(135deg,#7c3aed15,#4f46e510);border-color:#7c3aed40" onclick="generateDash()"><div class="exp-icon"><span class="eico"><span class="ei">📸</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg></span></span></div><div class="exp-name">Generar DASH</div><div class="exp-desc">Imagen resumen para compartir</div></div>
   </div>
   <div class="card">
-    <div class="card-title">📊 Resumen por Chofer</div>
+    <div class="card-title"><span class="eico"><span class="ei">📊</span><span class="si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span></span> Resumen por Chofer</div>
     <div id="ch-summary"></div>
   </div>
 </div>
@@ -1029,11 +1092,11 @@ header.cam-hidden{
 <!-- ══════ HISTORIAL ══════ -->
 <div id="history-panel" class="panel">
   <div class="abox abox-info" id="hist-summary-box">
-    🗂 <strong id="hist-count">0</strong> sesiones archivadas
+    <span class="eico"><span class="ei">🗂</span><span class="si"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span></span> <strong id="hist-count">0</strong> sesiones archivadas
   </div>
   <div id="history-list">
     <div style="text-align:center;padding:40px 20px;color:var(--text2)">
-      <div style="font-size:2.5rem;margin-bottom:10px">🗂</div>
+      <div style="font-size:2.5rem;margin-bottom:10px"><span class="eico"><span class="ei">🗂</span><span class="si"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span></span></div>
       <div style="font-size:0.9rem;font-weight:700">Sin sesiones archivadas</div>
       <div style="font-size:0.72rem;margin-top:6px">Cierra tu primer turno desde la pestaña Export para ver el historial aquí.</div>
     </div>
@@ -1043,7 +1106,7 @@ header.cam-hidden{
 <!-- ══════ MODAL CIERRE DE TURNO ══════ -->
 <div class="shift-modal-overlay" id="shift-modal-overlay">
   <div class="shift-modal">
-    <div class="shift-modal-title">🔒 Cerrar Turno</div>
+    <div class="shift-modal-title"><span class="eico"><span class="ei">🔒</span><span class="si"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></span></span> Cerrar Turno</div>
     <div class="shift-modal-sub">Se archivará la sesión actual y la app quedará limpia para el siguiente turno.</div>
     <div class="shift-summary-grid">
       <div class="shift-sum-box">
@@ -1058,13 +1121,13 @@ header.cam-hidden{
     <div class="shift-chofer-list" id="sm-ch-list"></div>
     <div class="shift-modal-actions">
       <button class="btn btn-primary" onclick="doCloseShift('excel')">
-        📊 Exportar Excel
+        <span class="eico"><span class="ei">📊</span><span class="si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg></span></span> Exportar Excel
       </button>
       <button class="btn btn-secondary" style="background:linear-gradient(135deg,#25d36622,#128c7e11);border-color:#25d36655" onclick="doCloseShift('wa')">
-        💬 Resumen por WhatsApp
+        <span class="eico"><span class="ei">💬</span><span class="si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span></span> Resumen por WhatsApp
       </button>
       <button class="btn btn-secondary" onclick="doCloseShift('silent')">
-        🗂 Solo archivar
+        <span class="eico"><span class="ei">🗂</span><span class="si"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><rect x="1" y="3" width="22" height="5" rx="1"/><path d="M10 12h4"/></svg></span></span> Solo archivar
       </button>
       <button class="btn btn-secondary" style="color:var(--text2)" onclick="closeShiftModal()">✕ CANCELAR</button>
     </div>
@@ -1074,7 +1137,7 @@ header.cam-hidden{
 <!-- ══════ SETTINGS ══════ -->
 <div id="settings-panel" class="panel">
   <div class="sec">
-    <div class="sec-title">🔒 Base de Datos</div>
+    <div class="sec-title"><span class="eico"><span class="ei">🔒</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></span></span> Base de Datos</div>
     <div id="db-info"></div>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
       <button class="btn btn-green" style="flex:1;font-size:0.68rem" onclick="exportBackupJSON()">⬇ Backup JSON</button>
@@ -1084,7 +1147,7 @@ header.cam-hidden{
   </div>
 
   <div class="sec">
-    <div class="sec-title">📷 Escáner</div>
+    <div class="sec-title"><span class="eico"><span class="ei">📷</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 0 2-2h3l2-3h8l2 3h3a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></span></span> Escáner</div>
     <div class="srow">
       <div><div class="slabel">Evitar duplicados</div><div class="shint">No agrega la misma guía dos veces</div></div>
       <label class="toggle"><input type="checkbox" id="set-dedup" checked><span class="tsl"></span></label>
@@ -1120,7 +1183,7 @@ header.cam-hidden{
   </div>
 
   <div class="sec">
-    <div class="sec-title">👤 Choferes (<span id="ch-count">0</span>)</div>
+    <div class="sec-title"><span class="eico"><span class="ei">👤</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span></span> Choferes (<span id="ch-count">0</span>)</div>
     <div class="abox abox-info" style="font-size:0.72rem">💡 Sin límite. Puedes seguir agregando guías a un chofer cuantas veces quieras.</div>
     <div class="ch-list" id="ch-list"></div>
     <div class="manual-row" style="margin-top:10px">
@@ -1136,7 +1199,7 @@ header.cam-hidden{
   </div>
 
   <div class="sec">
-    <div class="sec-title">📋 Columnas Extra</div>
+    <div class="sec-title"><span class="eico"><span class="ei">📋</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg></span></span> Columnas Extra</div>
     <div class="col-list" id="col-list"></div>
     <div class="manual-row" style="margin-top:10px">
       <input class="input-text" id="new-col-in" type="text" placeholder="Ej: ruta, zona, tipo...">
@@ -1145,7 +1208,7 @@ header.cam-hidden{
   </div>
 
   <div class="sec">
-    <div class="sec-title">🗑 Zona de Peligro</div>
+    <div class="sec-title"><span class="eico"><span class="ei">🗑</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg></span></span> Zona de Peligro</div>
     <div class="abox abox-err" style="font-size:0.72rem;margin-bottom:10px">⚠ Estas acciones son irreversibles. Descarga backup primero.</div>
     <div style="display:flex;gap:8px">
       <button class="btn btn-red" style="flex:1;font-size:0.68rem" onclick="clearAll(false)">Borrar registros</button>
@@ -1154,14 +1217,14 @@ header.cam-hidden{
   </div>
 
   <div class="sec">
-    <div class="sec-title">🔍 Diagnóstico de Cámara</div>
+    <div class="sec-title"><span class="eico"><span class="ei">🔍</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></span></span> Diagnóstico de Cámara</div>
     <div class="abox abox-info" style="font-size:0.72rem;margin-bottom:10px">Útil si la cámara no inicia o hay problemas de permisos.</div>
     <button class="btn btn-secondary" style="width:100%;font-size:0.78rem" onclick="toggleDiag()">🔍 Ejecutar diagnóstico</button>
     <div id="diag-panel"></div>
   </div>
 
   <div class="sec">
-    <div class="sec-title">🐛 Consola de Debug</div>
+    <div class="sec-title"><span class="eico"><span class="ei">🐛</span><span class="si"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2l1.88 1.88M14.12 3.88 16 2"/><path d="M9 7.13v-1a3.003 3.003 0 1 1 6 0v1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6z"/><path d="M12 20v-9"/><path d="M6.53 9C4.6 8.8 3 7.1 3 5"/><path d="M6 13H2"/><path d="M3 21c0-2.1 1.7-3.9 4-4"/><path d="M17.47 9c1.93-.2 3.53-1.9 3.53-4"/><path d="M18 13h4"/><path d="M21 21c0-2.1-1.7-3.9-4-4"/></svg></span></span> Consola de Debug</div>
     <div class="abox abox-info" style="font-size:0.72rem;margin-bottom:10px">Registro de eventos internos. Útil para reportar errores.</div>
     <button class="btn btn-secondary" style="width:100%;font-size:0.78rem" onclick="toggleDebug()">🐛 Abrir consola</button>
     <div id="dbg-panel" style="margin-top:8px">
@@ -1580,7 +1643,7 @@ function renderHistory(){
     document.getElementById('hist-count').textContent=sessions.length;
     if(!sessions.length){
       list.innerHTML=`<div style="text-align:center;padding:40px 20px;color:var(--text2)">
-        <div style="font-size:2.5rem;margin-bottom:10px">🗂</div>
+        <div style="font-size:2.5rem;margin-bottom:10px"><span class="eico"><span class="ei">🗂</span><span class="si"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg></span></span></div>
         <div style="font-size:0.9rem;font-weight:700">Sin sesiones archivadas</div>
         <div style="font-size:0.72rem;margin-top:6px">Cierra tu primer turno desde Export → Cerrar Turno.</div>
       </div>`;
@@ -2999,6 +3062,20 @@ function toast(msg){
 /* ══════════════════════════════════════
    TEMAS
 ══════════════════════════════════════ */
+/* ── Tema de iconos ── */
+function setIconTheme(t){
+  document.documentElement.setAttribute('data-icons', t==='emoji' ? '' : t);
+  localStorage.setItem('app_icons', t);
+  ['emoji','lucide','ios'].forEach(n=>{
+    const b=document.getElementById('iopt-'+n);
+    if(b)b.classList.toggle('active',n===t);
+  });
+}
+function loadIconTheme(){
+  const t=localStorage.getItem('app_icons')||'emoji';
+  setIconTheme(t);
+}
+
 function setTheme(t){
   document.documentElement.setAttribute('data-theme',t==='blue'?'':t);
   localStorage.setItem('app_theme',t);
@@ -3112,6 +3189,7 @@ document.getElementById('choedit-modal-bg').addEventListener('click',e=>{
 ══════════════════════════════════════ */
 async function init(){
   loadTheme();
+  loadIconTheme();
   try{
     await openDB();
     records=await idbGetAll('records');
