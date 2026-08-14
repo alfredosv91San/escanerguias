@@ -877,6 +877,22 @@ header.cam-hidden{
 #hdr-show-btn.visible{display:block}
 #hdr-show-btn:active{opacity:1}
 
+/* ════ Selector múltiple de choferes (Excel por chofer) ════ */
+.ch-check-row{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:14px;
+  background:var(--surface2);border:1px solid var(--border2);cursor:pointer;
+  margin-bottom:8px;transition:all .15s;user-select:none;
+}
+.ch-check-row.checked{border-color:var(--accent);background:var(--accent-light)}
+.ch-check-box{
+  width:22px;height:22px;border-radius:7px;border:2px solid var(--border);
+  flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:0.8rem;font-weight:900;color:#fff;background:var(--surface);transition:all .15s;
+}
+.ch-check-row.checked .ch-check-box{background:var(--accent);border-color:var(--accent)}
+.ch-check-name{flex:1;font-size:0.9rem;font-weight:700;color:var(--text)}
+.ch-check-count{font-size:0.7rem;font-weight:800;color:var(--text2)}
+
 </style>
 <body>
 
@@ -1074,7 +1090,7 @@ header.cam-hidden{
     <span style="font-size:1.4rem;opacity:.8">›</span>
   </button>
   <div class="exp-grid">
-    <div class="exp-card" onclick="exportExcel()"><div class="exp-icon"><span class="eico"><span class="ei">📊</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg></span></span></div><div class="exp-name">Excel</div><div class="exp-desc">Formato por chofer</div></div>
+    <div class="exp-card" onclick="openExcelSelectModal()"><div class="exp-icon"><span class="eico"><span class="ei">📊</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="12" y1="3" x2="12" y2="21"/></svg></span></span></div><div class="exp-name">Excel</div><div class="exp-desc">Elige los choferes</div></div>
     <div class="exp-card" onclick="exportCSV()"><div class="exp-icon"><span class="eico"><span class="ei">📄</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></span></span></div><div class="exp-name">CSV</div><div class="exp-desc">Compatible universal</div></div>
     <div class="exp-card" onclick="exportJSON()"><div class="exp-icon"><span class="eico"><span class="ei">💾</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><polyline points="9 15 12 18 15 15"/><line x1="12" y1="12" x2="12" y2="18"/></svg></span></span></div><div class="exp-name">Backup JSON</div><div class="exp-desc">Respaldo completo</div></div>
     <div class="exp-card" onclick="openCopyChoferModal('copy')"><div class="exp-icon"><span class="eico"><span class="ei">📋</span><span class="si"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></span></span></div><div class="exp-name">Copiar Guías</div><div class="exp-desc">Elige el chofer</div></div>
@@ -1180,6 +1196,10 @@ header.cam-hidden{
       <div><div class="slabel">Modo compatibilidad</div><div class="shint">Activa si la cámara no inicia o la imagen sale borrosa</div></div>
       <label class="toggle"><input type="checkbox" id="set-compat" onchange="saveCompatMode()"><span class="tsl"></span></label>
     </div>
+    <div class="srow">
+      <div><div class="slabel">Prefijos iMile aprendidos</div><div class="shint" id="imile-learned-hint">0 prefijos nuevos aprendidos</div></div>
+      <button class="btn btn-secondary" style="flex:0 0 auto;padding:9px 13px;font-size:0.7rem" onclick="resetLearnedImile()">Reiniciar</button>
+    </div>
   </div>
 
   <div class="sec">
@@ -1281,6 +1301,23 @@ header.cam-hidden{
   </div>
 </div>
 
+<!-- ══════ MODAL SELECCIONAR CHOFERES PARA EXCEL ══════ -->
+<div class="modal-bg" id="excelsel-modal-bg">
+  <div class="modal" style="border-top-color:#1d4ed8">
+    <div class="modal-handle"></div>
+    <div class="modal-title">📊 Excel — Elegir Choferes</div>
+    <div style="display:flex;gap:8px;margin-bottom:12px">
+      <button class="btn btn-secondary" style="flex:1;font-size:0.72rem" onclick="excelSelectAll(true)">✓ Marcar todos</button>
+      <button class="btn btn-secondary" style="flex:1;font-size:0.72rem" onclick="excelSelectAll(false)">✕ Desmarcar todos</button>
+    </div>
+    <div id="excelsel-list" style="max-height:44vh;overflow-y:auto;margin-bottom:14px"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1" onclick="confirmExcelSelect()">📊 GENERAR EXCEL</button>
+      <button class="btn btn-secondary" style="flex:0 0 auto;padding:13px 18px" onclick="document.getElementById('excelsel-modal-bg').classList.remove('show')">✕</button>
+    </div>
+  </div>
+</div>
+
 <!-- ══════ MODAL DASH PREVIEW ══════ -->
 <div class="modal-bg" id="dash-modal-bg">
   <div class="modal" style="border-top-color:#7c3aed;max-height:92vh">
@@ -1316,12 +1353,13 @@ header.cam-hidden{
       <div style="font-size:0.9rem;font-weight:900;font-family:var(--mono);color:#0f172a;word-break:break-all;margin-bottom:10px" id="imile-confirm-code">—</div>
       <div style="font-size:0.75rem;color:#78350f;line-height:1.7">
         Este código <strong>no coincide</strong> con los formatos iMile conocidos.<br>
-        Puede ser un código cercano leído por error, o un formato nuevo de iMile.
+        Puede ser un código cercano leído por error, o un formato nuevo de iMile.<br>
+        Si lo guardas, la app <strong>aprenderá este formato</strong> y no te preguntará de nuevo para códigos parecidos.
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:8px">
       <button class="btn btn-primary" onclick="confirmImileAdd()" style="background:linear-gradient(135deg,#d97706,#b45309)">
-        ✅ SÍ, GUARDAR DE TODAS FORMAS
+        ✅ SÍ, GUARDAR Y APRENDER FORMATO
       </button>
       <button class="btn btn-secondary" onclick="closeImileConfirm()">
         🔄 NO — ESCANEAR DE NUEVO
@@ -2161,16 +2199,12 @@ function handleScan(code){
 ══════════════════════════════════════ */
 async function addRecord(code,type){
   code=code.trim();if(!code)return;
-
-  if(iMileMode&&!isValidImile(code)){
-    if(document.getElementById('set-beep').checked)beepInvalid();
-    if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([40,30,40,30,40]);
-    showImileConfirmModal(code,type);
-    return;
-  }
-
   updateLast4(code);
 
+  // 1) El chequeo de duplicados va PRIMERO y SIEMPRE, sin importar si el
+  //    código es un prefijo iMile reconocido o no. Así, una guía que ya
+  //    fue confirmada manualmente (prefijo desconocido) sí se marca como
+  //    duplicado si se vuelve a escanear.
   if(document.getElementById('set-dedup').checked&&guidSet.has(code)){
     const existing=records.find(r=>r.guia===code);
     const existingChofer=existing?existing.chofer:'otro chofer';
@@ -2183,6 +2217,15 @@ async function addRecord(code,type){
     }
     showReasignModal(code,type,existingChofer);return;
   }
+
+  // 2) Solo si NO es duplicado, se valida el formato iMile (si el modo está activo)
+  if(iMileMode&&!isValidImile(code)){
+    if(document.getElementById('set-beep').checked)beepInvalid();
+    if(document.getElementById('set-vibrate').checked&&navigator.vibrate)navigator.vibrate([40,30,40,30,40]);
+    showImileConfirmModal(code,type);
+    return;
+  }
+
   if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
   await doAddRecord(code,type);
 }
@@ -2221,6 +2264,9 @@ async function confirmImileAdd(){
   closeImileConfirm();
   if(!code)return;
   if(!activeChofer){toast('⚠ Selecciona un chofer primero');openModal();return;}
+  // Aprender el formato de este código para que futuros escaneos parecidos
+  // se reconozcan automáticamente y no vuelvan a preguntar.
+  await learnImilePattern(code);
   await doAddRecord(code,type);
 }
 document.getElementById('imile-confirm-bg').addEventListener('click',e=>{
@@ -2401,6 +2447,8 @@ function renderSettings(){
       ${records.length} registros · ${choferes.length} choferes
     </div>
     <div class="abox abox-warn">⚠ Solo borra datos: <strong>"Borrar datos del sitio"</strong> en ajustes del navegador.<br>Descarga Backup JSON al terminar el día por seguridad.</div>`;
+  const lh=document.getElementById('imile-learned-hint');
+  if(lh)lh.textContent=learnedImilePatterns.length+' prefijo'+(learnedImilePatterns.length!==1?'s':'')+' nuevo'+(learnedImilePatterns.length!==1?'s':'')+' aprendido'+(learnedImilePatterns.length!==1?'s':'');
 }
 async function addChofer(){
   const inp=document.getElementById('new-ch-in');const v=inp.value.trim();if(!v)return;
@@ -2434,15 +2482,15 @@ function confirmExpCard(el){
 /* ══════════════════════════════════════
    EXPORT EXCEL
 ══════════════════════════════════════ */
-function buildExcelChoferColumns(){
+function buildExcelChoferColumns(recs){
   const chMap={};
-  records.forEach(r=>{
+  recs.forEach(r=>{
     const c=r.chofer||'Sin asignar';
     if(!chMap[c])chMap[c]=[];
     chMap[c].push(r.guia);
   });
   const chNames=Object.keys(chMap);
-  const maxRows=Math.max(...chNames.map(c=>chMap[c].length));
+  const maxRows=chNames.length?Math.max(...chNames.map(c=>chMap[c].length)):0;
   const matrix=[chNames];
   for(let i=0;i<maxRows;i++){
     matrix.push(chNames.map(c=>chMap[c][i]!==undefined?chMap[c][i]:''));
@@ -2450,24 +2498,70 @@ function buildExcelChoferColumns(){
   return{matrix,chMap,chNames};
 }
 
-function exportExcel(){
+/* ════ Selección de choferes antes de exportar Excel ════ */
+let excelSelectState={};
+function openExcelSelectModal(){
   if(!records.length){toast('No hay datos');return;}
+  const chNames=[...new Set(records.map(r=>r.chofer||'Sin asignar'))].sort();
+  // Por defecto todos marcados
+  excelSelectState={};
+  chNames.forEach(c=>excelSelectState[c]=true);
+  renderExcelSelectList();
+  document.getElementById('excelsel-modal-bg').classList.add('show');
+}
+function renderExcelSelectList(){
+  const chNames=Object.keys(excelSelectState).sort();
+  const list=document.getElementById('excelsel-list');
+  list.innerHTML=chNames.map(c=>{
+    const n=records.filter(r=>(r.chofer||'Sin asignar')===c).length;
+    const checked=excelSelectState[c];
+    return `<div class="ch-check-row${checked?' checked':''}" data-ch="${escA(c)}">
+      <div class="ch-check-box">${checked?'✓':''}</div>
+      <div class="ch-check-name">${esc(c)}</div>
+      <div class="ch-check-count">${n} guías</div>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.ch-check-row').forEach(el=>{
+    el.addEventListener('click',()=>{
+      const ch=el.dataset.ch;
+      excelSelectState[ch]=!excelSelectState[ch];
+      renderExcelSelectList();
+    });
+  });
+}
+function excelSelectAll(val){
+  Object.keys(excelSelectState).forEach(c=>excelSelectState[c]=val);
+  renderExcelSelectList();
+}
+function confirmExcelSelect(){
+  const chosen=Object.keys(excelSelectState).filter(c=>excelSelectState[c]);
+  if(!chosen.length){toast('⚠ Selecciona al menos un chofer');return;}
+  document.getElementById('excelsel-modal-bg').classList.remove('show');
+  exportExcel(chosen);
+}
+
+function exportExcel(onlyChoferes){
+  if(!records.length){toast('No hay datos');return;}
+  const recs=onlyChoferes&&onlyChoferes.length
+    ?records.filter(r=>onlyChoferes.includes(r.chofer||'Sin asignar'))
+    :records;
+  if(!recs.length){toast('No hay datos para los choferes elegidos');return;}
   const wb=XLSX.utils.book_new();
-  const {matrix,chMap,chNames}=buildExcelChoferColumns();
+  const {matrix,chMap,chNames}=buildExcelChoferColumns(recs);
   const ws1=XLSX.utils.aoa_to_sheet(matrix);
   ws1['!cols']=chNames.map(()=>({wch:22}));
   XLSX.utils.book_append_sheet(wb,ws1,'Guías por Chofer');
   const hdr=['GUÍA','TIPO','CHOFER','FECHA','HORA',...extraCols.map(c=>c.toUpperCase())];
-  const ws2=XLSX.utils.aoa_to_sheet([hdr,...records.map(r=>[r.guia,r.tipo||'',r.chofer||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')])]);
+  const ws2=XLSX.utils.aoa_to_sheet([hdr,...recs.map(r=>[r.guia,r.tipo||'',r.chofer||'',r.fecha||'',r.hora||'',...extraCols.map(c=>r[c]||'')])]);
   ws2['!cols']=hdr.map(()=>({wch:24}));
   XLSX.utils.book_append_sheet(wb,ws2,'Detalle Completo');
   Object.entries(chMap).forEach(([ch,guias])=>{
-    const data=[['N°','GUÍA',...extraCols.map(c=>c.toUpperCase())],...guias.map((g,i)=>[i+1,g,...extraCols.map(c=>{const r=records.find(r=>r.guia===g&&r.chofer===ch);return r?r[c]||'':'';})])];
+    const data=[['N°','GUÍA',...extraCols.map(c=>c.toUpperCase())],...guias.map((g,i)=>[i+1,g,...extraCols.map(c=>{const r=recs.find(r=>r.guia===g&&r.chofer===ch);return r?r[c]||'':'';})])];
     const ws=XLSX.utils.aoa_to_sheet(data);
     ws['!cols']=[{wch:6},{wch:24},...extraCols.map(()=>({wch:20}))];
     XLSX.utils.book_append_sheet(wb,ws,ch.substring(0,31));
   });
-  const sumData=[['CHOFER','TOTAL GUÍAS','FECHAS'],...Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,gs])=>[ch,gs.length,[...new Set(records.filter(r=>r.chofer===ch).map(r=>r.fecha))].join(', ')])];
+  const sumData=[['CHOFER','TOTAL GUÍAS','FECHAS'],...Object.entries(chMap).sort((a,b)=>b[1].length-a[1].length).map(([ch,gs])=>[ch,gs.length,[...new Set(recs.filter(r=>r.chofer===ch).map(r=>r.fecha))].join(', ')])];
   const wsSum=XLSX.utils.aoa_to_sheet(sumData);
   wsSum['!cols']=[{wch:28},{wch:14},{wch:40}];
   XLSX.utils.book_append_sheet(wb,wsSum,'Resumen');
@@ -2480,7 +2574,7 @@ function exportExcel(){
   const a=document.createElement('a');a.href=url;a.download=filename;a.click();
   setTimeout(()=>URL.revokeObjectURL(url),5000);
   toast('Excel descargado: '+filename);
-  confirmExpCard(document.querySelector('[onclick="exportExcel()"]'));
+  confirmExpCard(document.querySelector('[onclick="openExcelSelectModal()"]'));
 }
 
 function exportCSV(){
@@ -2525,7 +2619,7 @@ function exportHTML(){
   confirmExpCard(document.querySelector('[onclick="exportHTML()"]'));
 }
 function exportBackupJSON(silent=false){
-  const data={version:5,exported:nowStr(),records,choferes,extraCols,dupCount,activeChofer};
+  const data={version:5,exported:nowStr(),records,choferes,extraCols,dupCount,activeChofer,learnedImilePatterns};
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
   a.download=`backup_${Date.now()}.json`;a.click();
@@ -2540,9 +2634,11 @@ async function importBackup(event){
     if(!confirm(`Importar ${data.records.length} registros?\nExportado: ${data.exported||'?'}\n⚠ Reemplaza datos actuales.`))return;
     records=data.records||[];choferes=data.choferes||[];extraCols=data.extraCols||[];
     dupCount=data.dupCount||0;activeChofer=data.activeChofer||'';
+    learnedImilePatterns=data.learnedImilePatterns||[];
     guidSet=new Set(records.map(r=>r.guia));
     await idbClear('records');for(const r of records)await idbPut('records',r);
-    await persistCfg();updateStats();updateChoferBox();renderTable();renderRecents();
+    await persistCfg();await cfgSet('learnedImilePatterns',learnedImilePatterns);
+    updateStats();updateChoferBox();renderTable();renderRecents();
     toast(records.length+' guías restauradas ✓');
   }catch(e){toast('Error: '+e.message);}
   event.target.value='';
@@ -2630,7 +2726,57 @@ const IMILE_PATTERNS=[
   /^368\d{10}$/,
   /^380\d{10}$/,
 ];
-function isValidImile(code){return IMILE_PATTERNS.some(p=>p.test(code));}
+/* Patrones "aprendidos" a partir de códigos confirmados manualmente.
+   Se guardan como texto (source de RegExp) en IndexedDB para persistir
+   entre sesiones y se reconstruyen a RegExp al cargar la app. */
+let learnedImilePatterns=[]; // array de strings (regex source)
+function escapeRegex(s){return s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');}
+function derivePrefixPattern(code){
+  // Letras seguidas de dígitos (ej: IM08xxxxxxxxxxxx)
+  const m=code.match(/^([A-Za-z]+)(\d+)$/);
+  if(m){
+    const letters=m[1],digits=m[2];
+    const prefixLen=Math.min(2,digits.length);
+    const prefix=letters+digits.slice(0,prefixLen);
+    const restLen=digits.length-prefixLen;
+    return '^'+escapeRegex(prefix)+'\\d{'+restLen+'}$';
+  }
+  // Solo dígitos
+  if(/^\d+$/.test(code)){
+    const prefixLen=Math.min(3,Math.max(1,code.length-1));
+    const prefix=code.slice(0,prefixLen);
+    const restLen=code.length-prefixLen;
+    return '^'+escapeRegex(prefix)+'\\d{'+restLen+'}$';
+  }
+  // Alfanumérico genérico: mitad como prefijo literal, resto como comodín de igual longitud
+  const prefixLen=Math.max(1,Math.ceil(code.length/2));
+  const prefix=code.slice(0,prefixLen);
+  const restLen=code.length-prefixLen;
+  return '^'+escapeRegex(prefix)+'.{'+restLen+'}$';
+}
+async function learnImilePattern(code){
+  const src=derivePrefixPattern(code);
+  if(!learnedImilePatterns.includes(src)){
+    learnedImilePatterns.push(src);
+    await cfgSet('learnedImilePatterns',learnedImilePatterns);
+    const lh=document.getElementById('imile-learned-hint');
+    if(lh)lh.textContent=learnedImilePatterns.length+' prefijo'+(learnedImilePatterns.length!==1?'s':'')+' nuevo'+(learnedImilePatterns.length!==1?'s':'')+' aprendido'+(learnedImilePatterns.length!==1?'s':'');
+  }
+}
+async function resetLearnedImile(){
+  if(!learnedImilePatterns.length){toast('No hay prefijos aprendidos');return;}
+  if(!confirm('¿Olvidar los '+learnedImilePatterns.length+' prefijos iMile aprendidos?\nVolverán a pedir confirmación la próxima vez que aparezcan.'))return;
+  learnedImilePatterns=[];
+  await cfgSet('learnedImilePatterns',learnedImilePatterns);
+  renderSettings();
+  toast('🗑 Prefijos aprendidos borrados');
+}
+function isValidImile(code){
+  if(IMILE_PATTERNS.some(p=>p.test(code)))return true;
+  return learnedImilePatterns.some(src=>{
+    try{return new RegExp(src).test(code);}catch(e){return false;}
+  });
+}
 function toggleImileMode(){
   iMileMode=!iMileMode;
   const badge=document.getElementById('imile-badge');
@@ -3199,6 +3345,7 @@ async function init(){
     dupCount=await cfgGet('dupCount',0);
     activeChofer=await cfgGet('activeChofer','');
     selectedCamId=await cfgGet('selectedCamId','');
+    learnedImilePatterns=await cfgGet('learnedImilePatterns',[]);
     guidSet=new Set(records.map(r=>r.guia));
     await loadSessions();
     setDbPill('ok','💾 OK');
